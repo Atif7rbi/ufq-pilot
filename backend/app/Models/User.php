@@ -14,31 +14,65 @@ class User extends Authenticatable
     use HasFactory;
     use Notifiable;
 
-    /**
-     * @var list<string>
-     */
+    public const ROLE_SYSTEM_OWNER = 'system_owner';
+
+    public const ROLE_ADMINISTRATOR = 'administrator';
+
+    public const ROLE_PROJECT_MANAGER = 'project_manager';
+
+    public const ROLE_SALES = 'sales';
+
+    public const ROLE_ACCOUNTANT = 'accountant';
+
+    public const ROLE_EMPLOYEE = 'employee';
+
+    public const STATUS_ACTIVE = 'active';
+
+    public const STATUS_SUSPENDED = 'suspended';
+
+    public const STATUS_ARCHIVED = 'archived';
+
     protected $fillable = [
         'name',
         'email',
+        'role',
+        'status',
+        'phone',
         'password',
+        'last_login_at',
     ];
 
-    /**
-     * @var list<string>
-     */
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
-    /**
-     * @return array<string, string>
-     */
     protected function casts(): array
     {
         return [
             'email_verified_at' => 'datetime',
+            'last_login_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    public function isActive(): bool
+    {
+        return $this->status === self::STATUS_ACTIVE;
+    }
+
+    public function isSystemOwner(): bool
+    {
+        return $this->role === self::ROLE_SYSTEM_OWNER;
+    }
+
+    public function isAdministrator(): bool
+    {
+        return $this->role === self::ROLE_ADMINISTRATOR;
+    }
+
+    public function canManageUsers(): bool
+    {
+        return $this->isSystemOwner() || $this->isAdministrator();
     }
 }
