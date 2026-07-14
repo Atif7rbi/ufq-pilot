@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 
 import "./globals.css";
 
+import { AuthProvider } from "@/providers/AuthProvider";
 import { SystemSettingsProvider } from "@/providers/SystemSettingsProvider";
 
 export const metadata: Metadata = {
@@ -21,7 +22,7 @@ export default function RootLayout({
     <html lang="ar" dir="rtl">
       <body>
         <SystemSettingsProvider>
-          {children}
+          <AuthProvider>{children}</AuthProvider>
         </SystemSettingsProvider>
       </body>
     </html>

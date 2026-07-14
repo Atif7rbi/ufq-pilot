@@ -37,7 +37,7 @@ export default function HomePage() {
         <section className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
           <div>
             <h2 className="text-2xl font-bold text-slate-950">
-              مرحبًا بك في نظام أفق
+              مرحبًا بك في لوحة التحكم
             </h2>
 
             <p className="mt-2 text-sm leading-6 text-slate-500">
