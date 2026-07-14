@@ -3,9 +3,11 @@ import type { ReactNode } from "react";
 
 import "./globals.css";
 
+import { SystemSettingsProvider } from "@/providers/SystemSettingsProvider";
+
 export const metadata: Metadata = {
-  title: "نظام أفق",
-  description: "نظام إدارة شركة أفق السكنية للتطوير العقاري",
+  title: "نظام إدارة الأعمال",
+  description: "نظام تشغيل وإدارة الأعمال",
 };
 
 type RootLayoutProps = {
@@ -17,7 +19,11 @@ export default function RootLayout({
 }: RootLayoutProps) {
   return (
     <html lang="ar" dir="rtl">
-      <body>{children}</body>
+      <body>
+        <SystemSettingsProvider>
+          {children}
+        </SystemSettingsProvider>
+      </body>
     </html>
   );
 }

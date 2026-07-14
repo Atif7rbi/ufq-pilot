@@ -1,4 +1,6 @@
-import { brand } from "@/config/brand";
+"use client";
+
+import { useSystemSettings } from "@/providers/SystemSettingsProvider";
 
 const navigation = [
   { label: "لوحة التحكم", href: "#", active: true },
@@ -9,28 +11,33 @@ const navigation = [
   { label: "العقود", href: "#", active: false },
   { label: "الأقساط والتحصيلات", href: "#", active: false },
   { label: "المصروفات", href: "#", active: false },
-  { label: "المقاولين", href: "#", active: false },
-  { label: "الموظفين والمهام", href: "#", active: false },
+  { label: "المقاولون", href: "#", active: false },
+  { label: "الموظفون والمهام", href: "#", active: false },
   { label: "التقارير", href: "#", active: false },
   { label: "الإعدادات", href: "#", active: false },
 ];
 
 export function Sidebar() {
+  const settings = useSystemSettings();
+
   return (
     <aside className="hidden min-h-screen w-72 shrink-0 border-l border-slate-200 bg-white lg:block">
       <div className="sticky top-0 flex min-h-screen flex-col">
         <div className="border-b border-slate-100 px-6 py-6">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-950 text-lg font-bold text-white">
-              أ
+            <div
+              className="flex h-11 w-11 items-center justify-center rounded-2xl text-lg font-bold text-white"
+              style={{ backgroundColor: settings.primary_color }}
+            >
+              {settings.short_name_ar.slice(0, 1)}
             </div>
 
             <div>
               <p className="text-lg font-bold text-slate-950">
-                {brand.applicationName}
+                {settings.short_name_ar}
               </p>
               <p className="text-xs text-slate-500">
-                التطوير العقاري
+                نظام إدارة الأعمال
               </p>
             </div>
           </div>
@@ -45,9 +52,14 @@ export function Sidebar() {
                 "flex min-h-11 items-center rounded-xl px-4 text-sm font-medium",
                 "transition-colors",
                 item.active
-                  ? "bg-slate-950 text-white"
+                  ? "text-white"
                   : "text-slate-600 hover:bg-slate-100 hover:text-slate-950",
               ].join(" ")}
+              style={
+                item.active
+                  ? { backgroundColor: settings.primary_color }
+                  : undefined
+              }
             >
               {item.label}
             </a>
@@ -56,7 +68,7 @@ export function Sidebar() {
 
         <div className="border-t border-slate-100 px-5 py-4">
           <p className="text-xs leading-5 text-slate-400">
-            {brand.companyNameAr}
+            {settings.company_name_ar}
           </p>
         </div>
       </div>
