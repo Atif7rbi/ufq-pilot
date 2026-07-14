@@ -11,6 +11,8 @@ class SystemSetting extends Model
         'company_name_en',
         'short_name_ar',
         'short_name_en',
+        'company_tagline_ar',
+        'company_tagline_en',
         'logo_path',
         'favicon_path',
         'primary_color',

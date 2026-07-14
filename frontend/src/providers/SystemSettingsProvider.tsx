@@ -16,6 +16,8 @@ const defaultSettings: SystemSettings = {
   company_name_en: "Business Management System",
   short_name_ar: "النظام",
   short_name_en: "System",
+  company_tagline_ar: "للتطوير العقاري",
+  company_tagline_en: "Real Estate Development",
   logo_path: null,
   favicon_path: null,
   primary_color: "#0f172a",

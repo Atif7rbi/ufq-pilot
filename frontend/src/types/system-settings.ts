@@ -4,6 +4,8 @@ export type SystemSettings = {
   company_name_en: string | null;
   short_name_ar: string;
   short_name_en: string | null;
+  company_tagline_ar: string | null;
+  company_tagline_en: string | null;
   logo_path: string | null;
   favicon_path: string | null;
   primary_color: string;

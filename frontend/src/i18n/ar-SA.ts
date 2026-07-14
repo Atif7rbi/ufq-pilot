@@ -1,0 +1,151 @@
+import type { TranslationDictionary } from "@/i18n/types";
+
+export const arSA: TranslationDictionary = {
+  "common.language": "اللغة",
+  "common.arabic": "العربية",
+  "common.english": "English",
+  "common.loading": "جارٍ التحميل...",
+  "common.search": "بحث",
+  "common.showAll": "عرض الكل",
+  "common.logout": "تسجيل الخروج",
+  "common.systemRunning": "النظام يعمل",
+  "common.underConstruction": "هذه الوحدة قيد البناء",
+
+  "navigation.home": "الرئيسية",
+  "navigation.dashboard": "لوحة التحكم",
+  "navigation.salesAndCustomers": "المبيعات والعملاء",
+  "navigation.crm": "إدارة العملاء المحتملين",
+  "navigation.customers": "العملاء",
+  "navigation.reservations": "الحجوزات",
+  "navigation.contracts": "العقود",
+  "navigation.realEstateDevelopment": "التطوير العقاري",
+  "navigation.projects": "المشاريع",
+  "navigation.units": "الوحدات",
+  "navigation.contractors": "المقاولين",
+  "navigation.contractorStatements": "المستخلصات",
+  "navigation.finance": "المالية",
+  "navigation.collections": "الأقساط والتحصيلات",
+  "navigation.expenses": "المصروفات",
+  "navigation.financialReports": "التقارير المالية",
+  "navigation.administration": "الإدارة",
+  "navigation.employeesAndTasks": "الموظفين والمهام",
+  "navigation.usersAndPermissions": "المستخدمين والصلاحيات",
+  "navigation.reports": "التقارير",
+  "navigation.settings": "الإعدادات",
+  "navigation.collapseSidebar": "طي القائمة",
+  "navigation.expandSidebar": "توسيع القائمة",
+  "navigation.openSidebar": "فتح القائمة",
+  "navigation.closeSidebar": "إغلاق القائمة",
+
+  "roles.systemOwner": "مالك النظام",
+  "roles.administrator": "مدير الشركة",
+  "roles.projectManager": "مدير مشاريع",
+  "roles.sales": "المبيعات",
+  "roles.accountant": "محاسب",
+  "roles.employee": "موظف",
+
+  "auth.welcomeBack": "مرحبًا بعودتك",
+  "auth.login": "تسجيل الدخول",
+  "auth.loginDescription": "أدخل بيانات حسابك للوصول إلى لوحة التحكم.",
+  "auth.email": "البريد الإلكتروني",
+  "auth.emailPlaceholder": "name@company.com",
+  "auth.password": "كلمة المرور",
+  "auth.passwordPlaceholder": "••••••••••••",
+  "auth.submit": "تسجيل الدخول",
+  "auth.submitting": "جارٍ تسجيل الدخول...",
+  "auth.loginFailed": "تعذر تسجيل الدخول.",
+  "auth.showOrHidePassword": "إظهار أو إخفاء كلمة المرور",
+  "auth.platformLabel": "منصة إدارة التطوير العقاري",
+  "auth.heroTitleLine1": "إدارة أعمال الشركة",
+  "auth.heroTitleLine2": "من مكان واحد",
+  "auth.heroDescription":
+    "المشاريع والعملاء والوحدات والعقود والتحصيلات ضمن مساحة عمل موحدة وواضحة.",
+
+  "dashboard.title": "لوحة التحكم",
+  "dashboard.description": "نظرة شاملة على أداء الشركة وأهم العمليات",
+  "dashboard.greetingMorning": "صباح الخير",
+  "dashboard.quickActions.newProject": "مشروع جديد",
+  "dashboard.quickActions.newCustomer": "عميل جديد",
+  "dashboard.quickActions.newContract": "عقد جديد",
+  "dashboard.quickActions.newPayment": "دفعة جديدة",
+  "dashboard.stats.projects": "المشاريع",
+  "dashboard.stats.customers": "العملاء",
+  "dashboard.stats.units": "الوحدات",
+  "dashboard.stats.contracts": "العقود",
+  "dashboard.stats.noProjects": "لا توجد مشاريع مسجلة",
+  "dashboard.stats.noCustomers": "لا يوجد عملاء حتى الآن",
+  "dashboard.stats.noUnits": "لا توجد وحدات عقارية",
+  "dashboard.stats.noContracts": "لا توجد عقود مسجلة",
+  "dashboard.currentProjects": "المشاريع الحالية",
+  "dashboard.currentProjectsDescription": "متابعة تقدم المشاريع النشطة",
+  "dashboard.noProjects": "لا توجد مشاريع حتى الآن",
+  "dashboard.noProjectsDescription":
+    "ستظهر المشاريع ونسب الإنجاز بعد إضافة البيانات.",
+  "dashboard.recentActivity": "آخر النشاطات",
+  "dashboard.recentActivityDescription": "أحدث العمليات داخل النظام",
+  "dashboard.noActivity": "لا توجد نشاطات",
+  "dashboard.noActivityDescription":
+    "سيظهر هنا سجل العمليات التي ينفذها المستخدمين.",
+  "dashboard.collectionsSummary": "ملخص التحصيلات",
+  "dashboard.collectionsDescription": "حالة الأقساط والمدفوعات",
+  "dashboard.dueThisMonth": "مستحق هذا الشهر",
+  "dashboard.collected": "تم تحصيله",
+  "dashboard.overdue": "متأخر",
+  "dashboard.alerts": "التنبيهات",
+  "dashboard.alertsDescription": "الحالات التي تحتاج إلى متابعة",
+  "dashboard.noOverdueInstallments": "لا توجد أقساط متأخرة",
+  "dashboard.noOverdueInstallmentsDescription":
+    "جميع الأقساط الحالية بحالة سليمة",
+  "dashboard.noDelayedProjects": "لا توجد مشاريع متأخرة",
+  "dashboard.noDelayedProjectsDescription":
+    "جميع المشاريع ضمن الجدول الحالي",
+  "dashboard.noUrgentAlerts": "لا توجد تنبيهات عاجلة",
+  "dashboard.noUrgentAlertsDescription":
+    "لا توجد عمليات تحتاج تدخلك الآن",
+
+  "pages.crm.title": "إدارة العملاء المحتملين",
+  "pages.crm.description":
+    "متابعة العملاء المحتملين ومصادرهم وسجل التواصل",
+  "pages.customers.title": "العملاء",
+  "pages.customers.description":
+    "إدارة بيانات العملاء وملفاتهم وملاحظاتهم",
+  "pages.reservations.title": "الحجوزات",
+  "pages.reservations.description":
+    "إدارة الحجوزات والعربون وتواريخ الانتهاء",
+  "pages.contracts.title": "العقود",
+  "pages.contracts.description":
+    "إدارة عقود البيع والدفعات والملفات المرتبطة",
+  "pages.projects.title": "المشاريع",
+  "pages.projects.description":
+    "إدارة المشاريع والميزانيات ونسب الإنجاز",
+  "pages.units.title": "الوحدات",
+  "pages.units.description":
+    "إدارة الوحدات العقارية والأسعار والحالات",
+  "pages.contractors.title": "المقاولين",
+  "pages.contractors.description":
+    "إدارة بيانات المقاولين وعقودهم ومشاريعهم",
+  "pages.contractorStatements.title": "المستخلصات",
+  "pages.contractorStatements.description":
+    "متابعة مستخلصات المقاولين ونسب الإنجاز",
+  "pages.collections.title": "الأقساط والتحصيلات",
+  "pages.collections.description":
+    "متابعة الأقساط والمدفوع والمتبقي والمتأخر",
+  "pages.expenses.title": "المصروفات",
+  "pages.expenses.description":
+    "تسجيل مصروفات المشاريع والموردين والمرفقات",
+  "pages.financialReports.title": "التقارير المالية",
+  "pages.financialReports.description":
+    "عرض الإيرادات والتحصيلات والمصروفات",
+  "pages.employees.title": "الموظفين والمهام",
+  "pages.employees.description":
+    "إدارة الموظفين والمهام والمواعيد النهائية",
+  "pages.users.title": "المستخدمين والصلاحيات",
+  "pages.users.description":
+    "إدارة الحسابات والأدوار والصلاحيات",
+  "pages.reports.title": "التقارير",
+  "pages.reports.description":
+    "تقارير تشغيلية لمتابعة أداء الشركة",
+  "pages.settings.title": "الإعدادات",
+  "pages.settings.description":
+    "إعدادات الشركة والهوية والنظام",
+};

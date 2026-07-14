@@ -3,26 +3,39 @@ import type { ReactNode } from "react";
 
 import "./globals.css";
 
+import { AppShellProvider } from "@/providers/AppShellProvider";
 import { AuthProvider } from "@/providers/AuthProvider";
+import { LanguageProvider } from "@/providers/LanguageProvider";
 import { SystemSettingsProvider } from "@/providers/SystemSettingsProvider";
+import { ThemeProvider } from "@/providers/ThemeProvider";
 
 export const metadata: Metadata = {
-  title: "نظام إدارة الأعمال",
-  description: "نظام تشغيل وإدارة الأعمال",
-};
-
-type RootLayoutProps = {
-  children: ReactNode;
+  title: "شركة أفق السكنية",
+  description: "نظام إدارة التطوير العقاري",
 };
 
 export default function RootLayout({
   children,
-}: RootLayoutProps) {
+}: {
+  children: ReactNode;
+}) {
   return (
-    <html lang="ar" dir="rtl">
+    <html
+      lang="ar-SA"
+      dir="rtl"
+      suppressHydrationWarning
+    >
       <body>
         <SystemSettingsProvider>
-          <AuthProvider>{children}</AuthProvider>
+          <LanguageProvider>
+            <ThemeProvider>
+              <AuthProvider>
+                <AppShellProvider>
+                  {children}
+                </AppShellProvider>
+              </AuthProvider>
+            </ThemeProvider>
+          </LanguageProvider>
         </SystemSettingsProvider>
       </body>
     </html>

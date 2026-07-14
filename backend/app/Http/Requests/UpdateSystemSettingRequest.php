@@ -22,6 +22,19 @@ class UpdateSystemSettingRequest extends FormRequest
             'short_name_ar' => ['sometimes', 'required', 'string', 'max:100'],
             'short_name_en' => ['sometimes', 'nullable', 'string', 'max:100'],
 
+            'company_tagline_ar' => [
+                'sometimes',
+                'nullable',
+                'string',
+                'max:200',
+            ],
+            'company_tagline_en' => [
+                'sometimes',
+                'nullable',
+                'string',
+                'max:200',
+            ],
+
             'logo_path' => ['sometimes', 'nullable', 'string', 'max:255'],
             'favicon_path' => ['sometimes', 'nullable', 'string', 'max:255'],
 
