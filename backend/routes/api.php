@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\SystemSettingController;
+use App\Modules\Projects\Controllers\ProjectController;
 use Illuminate\Support\Facades\Route;
 
 Route::get(
@@ -28,5 +29,10 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::put(
         '/system-settings',
         [SystemSettingController::class, 'update']
+    );
+
+    Route::apiResource(
+        'projects',
+        ProjectController::class
     );
 });

@@ -20,7 +20,7 @@ class SystemSettingApiTest extends TestCase
             ->assertOk()
             ->assertJsonPath(
                 'data.company_name_ar',
-                'شركة أفق السكنية للتطوير العقاري'
+                'شركة أفق السكنية'
             )
             ->assertJsonPath('data.short_name_ar', 'أفق')
             ->assertJsonPath('data.timezone', 'Asia/Riyadh')

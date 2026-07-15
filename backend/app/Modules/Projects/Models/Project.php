@@ -1,0 +1,84 @@
+<?php
+
+namespace App\Modules\Projects\Models;
+
+use App\Models\User;
+use App\Modules\Projects\Enums\ProjectStatus;
+use App\Modules\Projects\Enums\ProjectType;
+use App\Modules\Shared\Enums\DataOrigin;
+use Illuminate\Database\Eloquent\Concerns\HasUlids;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
+
+class Project extends Model
+{
+    use HasUlids;
+    use SoftDeletes;
+
+    protected $fillable = [
+        'project_number',
+        'project_number_year',
+        'project_sequence_number',
+        'name',
+        'description',
+        'project_type',
+        'status',
+        'country_code',
+        'city',
+        'district',
+        'address_line',
+        'currency',
+        'estimated_budget',
+        'planned_start_date',
+        'planned_end_date',
+        'actual_start_date',
+        'actual_end_date',
+        'project_manager_id',
+        'data_origin',
+        'external_reference',
+        'legacy_reference',
+        'created_by',
+        'updated_by',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'project_type' => ProjectType::class,
+            'status' => ProjectStatus::class,
+            'data_origin' => DataOrigin::class,
+            'estimated_budget' => 'decimal:2',
+            'planned_start_date' => 'date',
+            'planned_end_date' => 'date',
+            'actual_start_date' => 'date',
+            'actual_end_date' => 'date',
+            'project_number_year' => 'integer',
+            'project_sequence_number' => 'integer',
+        ];
+    }
+
+    public function projectManager(): BelongsTo
+    {
+        return $this->belongsTo(
+            User::class,
+            'project_manager_id',
+        );
+    }
+
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(
+            User::class,
+            'created_by',
+        );
+    }
+
+    public function updater(): BelongsTo
+    {
+        return $this->belongsTo(
+            User::class,
+            'updated_by',
+        );
+    }
+}
