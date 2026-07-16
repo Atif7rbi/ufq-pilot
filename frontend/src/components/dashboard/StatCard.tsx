@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
 
 type StatCardProps = {
@@ -6,24 +7,21 @@ type StatCardProps = {
   description: string;
   icon: LucideIcon;
   tone: "gold" | "blue" | "green" | "violet";
+  href?: string;
 };
 
 const toneClasses = {
   gold: {
     icon: "bg-[var(--warning-soft)] text-[var(--warning)]",
-    badge: "text-[var(--warning)]",
   },
   blue: {
     icon: "bg-[var(--info-soft)] text-[var(--info)]",
-    badge: "text-[var(--info)]",
   },
   green: {
     icon: "bg-[var(--success-soft)] text-[var(--success)]",
-    badge: "text-[var(--success)]",
   },
   violet: {
     icon: "bg-[var(--violet-soft)] text-[var(--violet)]",
-    badge: "text-[var(--violet)]",
   },
 };
 
@@ -33,15 +31,16 @@ export function StatCard({
   description,
   icon: Icon,
   tone,
+  href,
 }: StatCardProps) {
-  const classes = toneClasses[tone];
-
-  return (
+  const content = (
     <article
       className={[
-        "motion-ui rounded-2xl border border-[var(--border)]",
+        "motion-ui h-full rounded-2xl border border-[var(--border)]",
         "bg-[var(--surface)] p-5 shadow-[var(--shadow-sm)]",
-        "hover:-translate-y-1 hover:shadow-[var(--shadow-md)]",
+        href
+          ? "cursor-pointer hover:-translate-y-1 hover:border-[var(--brand-gold)] hover:shadow-[var(--shadow-md)]"
+          : "",
       ].join(" ")}
     >
       <div className="flex items-start justify-between gap-4">
@@ -50,7 +49,10 @@ export function StatCard({
             {label}
           </p>
 
-          <p className="mt-3 text-3xl font-bold text-[var(--text-primary)]">
+          <p
+            className="mt-3 text-3xl font-bold text-[var(--text-primary)]"
+            dir="ltr"
+          >
             {value}
           </p>
 
@@ -59,10 +61,22 @@ export function StatCard({
           </p>
         </div>
 
-        <div className={`flex h-11 w-11 items-center justify-center rounded-xl ${classes.icon}`}>
+        <div
+          className={`flex h-11 w-11 items-center justify-center rounded-xl ${toneClasses[tone].icon}`}
+        >
           <Icon size={21} strokeWidth={1.8} />
         </div>
       </div>
     </article>
+  );
+
+  if (!href) {
+    return content;
+  }
+
+  return (
+    <Link href={href} className="block h-full">
+      {content}
+    </Link>
   );
 }

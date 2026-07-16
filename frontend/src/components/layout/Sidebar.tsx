@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   PanelLeftClose,
@@ -11,11 +12,16 @@ import {
   PanelRightOpen,
   X,
 } from "lucide-react";
+import { useState } from "react";
 
-import { CompanyBrand } from "@/components/brand/CompanyBrand";
+import { NexusBrand } from "@/components/brand/NexusBrand";
 import { navigationGroups } from "@/config/navigation";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useAppShell } from "@/providers/AppShellProvider";
+
+const GROUP_STORAGE_KEY = "nexusos_sidebar_groups_v1";
+
+type GroupState = Record<string, boolean>;
 
 function normalizePath(path: string): string {
   if (path === "/") {
@@ -34,6 +40,26 @@ function isCurrentPath(
   return normalizePath(pathname) === normalizePath(href);
 }
 
+function getInitialGroupState(): GroupState {
+  if (typeof window === "undefined") {
+    return {};
+  }
+
+  try {
+    const storedValue = window.localStorage.getItem(
+      GROUP_STORAGE_KEY
+    );
+
+    if (!storedValue) {
+      return {};
+    }
+
+    return JSON.parse(storedValue) as GroupState;
+  } catch {
+    return {};
+  }
+}
+
 type SidebarContentProps = {
   mobile?: boolean;
 };
@@ -42,11 +68,7 @@ function SidebarContent({
   mobile = false,
 }: SidebarContentProps) {
   const pathname = usePathname();
-
-  const {
-    isArabic,
-    t,
-  } = useTranslation();
+  const { isArabic, t } = useTranslation();
 
   const {
     isSidebarCollapsed,
@@ -54,10 +76,17 @@ function SidebarContent({
     closeMobileSidebar,
   } = useAppShell();
 
+  const [expandedGroups, setExpandedGroups] =
+    useState<GroupState>(getInitialGroupState);
+
   const collapsed =
     !mobile && isSidebarCollapsed;
 
   const ActiveChevron = isArabic
+    ? ChevronLeft
+    : ChevronRight;
+
+  const ClosedChevron = isArabic
     ? ChevronLeft
     : ChevronRight;
 
@@ -69,13 +98,27 @@ function SidebarContent({
     ? PanelRightOpen
     : PanelLeftOpen;
 
+  const toggleGroup = (groupKey: string): void => {
+    setExpandedGroups((current) => {
+      const nextState = {
+        ...current,
+        [groupKey]:
+          current[groupKey] === false,
+      };
+
+      window.localStorage.setItem(
+        GROUP_STORAGE_KEY,
+        JSON.stringify(nextState)
+      );
+
+      return nextState;
+    });
+  };
+
   return (
     <>
-      <div className="flex h-[76px] shrink-0 items-center justify-between border-b border-[var(--border)] px-4">
-        <CompanyBrand
-          compact={collapsed}
-          hideText={collapsed}
-        />
+      <div className="flex h-[82px] shrink-0 items-center justify-between border-b border-[var(--border)] px-4">
+        <NexusBrand compact={collapsed} />
 
         {mobile ? (
           <button
@@ -90,87 +133,138 @@ function SidebarContent({
       </div>
 
       <nav className="sidebar-scroll flex-1 overflow-y-auto px-3 py-5">
-        <div className="space-y-6">
-          {navigationGroups.map((group) => (
-            <section key={group.labelKey}>
-              {!collapsed ? (
-                <p className="mb-2 px-3 text-[10px] font-bold text-[var(--sidebar-heading)]">
-                  {t(group.labelKey)}
-                </p>
-              ) : null}
+        <div className="space-y-4">
+          {navigationGroups.map((group, groupIndex) => {
+            const groupKey = group.labelKey;
+            const isHomeGroup = groupIndex === 0;
 
-              <div className="space-y-1">
-                {group.items.map((item) => {
-                  const active = isCurrentPath(
-                    pathname,
-                    item.href
-                  );
+            const isExpanded =
+              isHomeGroup ||
+              expandedGroups[groupKey] !== false;
 
-                  const Icon = item.icon;
-                  const label = t(item.labelKey);
-
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      title={collapsed ? label : undefined}
-                      onClick={
-                        mobile
-                          ? closeMobileSidebar
-                          : undefined
+            return (
+              <section key={groupKey}>
+                {!collapsed ? (
+                  isHomeGroup ? (
+                    <p className="mb-2 px-3 text-[10px] font-bold text-[var(--sidebar-heading)]">
+                      {t(group.labelKey)}
+                    </p>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        toggleGroup(groupKey)
                       }
-                      className={[
-                        "motion-ui group relative flex min-h-10 items-center rounded-xl",
-                        collapsed
-                          ? "justify-center px-2"
-                          : "gap-3 px-3",
-                        "text-[13px] font-semibold",
-                        active
-                          ? "bg-[var(--sidebar-active-bg)] text-[var(--sidebar-active-text)]"
-                          : "text-[var(--sidebar-text)] hover:bg-[var(--surface-muted)] hover:text-[var(--text-primary)]",
-                      ].join(" ")}
+                      className="mb-2 flex h-8 w-full items-center justify-between rounded-lg px-3 text-[10px] font-bold text-[var(--sidebar-heading)] transition-colors hover:bg-[var(--surface-muted)] hover:text-[var(--text-primary)]"
+                      aria-expanded={isExpanded}
                     >
-                      {active ? (
-                        <span
-                          className={[
-                            "absolute h-6 w-[3px] bg-[var(--brand-gold)]",
-                            isArabic
-                              ? "-right-3 rounded-l-full"
-                              : "-left-3 rounded-r-full",
-                          ].join(" ")}
+                      <span>{t(group.labelKey)}</span>
+
+                      {isExpanded ? (
+                        <ChevronDown
+                          size={14}
+                          className="transition-transform duration-200"
                         />
-                      ) : null}
+                      ) : (
+                        <ClosedChevron
+                          size={14}
+                          className="transition-transform duration-200"
+                        />
+                      )}
+                    </button>
+                  )
+                ) : null}
 
-                      <Icon
-                        size={18}
-                        strokeWidth={active ? 2 : 1.7}
-                        className={
-                          active
-                            ? "shrink-0 text-[var(--brand-gold-strong)]"
-                            : "shrink-0 text-[var(--text-muted)] group-hover:text-[var(--text-primary)]"
-                        }
-                      />
+                <div
+                  className={[
+                    "grid transition-[grid-template-rows,opacity] duration-200",
+                    isExpanded || collapsed
+                      ? "grid-rows-[1fr] opacity-100"
+                      : "grid-rows-[0fr] opacity-0",
+                  ].join(" ")}
+                >
+                  <div className="min-h-0 overflow-hidden">
+                    <div className="space-y-1">
+                      {group.items.map((item) => {
+                        const active = isCurrentPath(
+                          pathname,
+                          item.href
+                        );
 
-                      {!collapsed ? (
-                        <>
-                          <span className="min-w-0 flex-1 truncate">
-                            {label}
-                          </span>
+                        const Icon = item.icon;
+                        const label = t(item.labelKey);
 
-                          {active ? (
-                            <ActiveChevron
-                              size={14}
-                              className="text-[var(--brand-gold)]"
+                        return (
+                          <Link
+                            key={item.href}
+                            href={item.href}
+                            title={
+                              collapsed
+                                ? label
+                                : undefined
+                            }
+                            onClick={
+                              mobile
+                                ? closeMobileSidebar
+                                : undefined
+                            }
+                            className={[
+                              "motion-ui group relative flex min-h-10 items-center rounded-xl",
+                              collapsed
+                                ? "justify-center px-2"
+                                : "gap-3 px-3",
+                              "text-[13px] font-semibold",
+                              active
+                                ? "bg-[var(--sidebar-active-bg)] text-[var(--sidebar-active-text)]"
+                                : "text-[var(--sidebar-text)] hover:bg-[var(--surface-muted)] hover:text-[var(--text-primary)]",
+                            ].join(" ")}
+                          >
+                            {active ? (
+                              <span
+                                className={[
+                                  "absolute h-6 w-[3px] bg-[var(--brand-gold)]",
+                                  isArabic
+                                    ? "-right-3 rounded-l-full"
+                                    : "-left-3 rounded-r-full",
+                                ].join(" ")}
+                              />
+                            ) : null}
+
+                            <Icon
+                              size={18}
+                              strokeWidth={
+                                active ? 2 : 1.7
+                              }
+                              className={
+                                active
+                                  ? "shrink-0 text-[var(--brand-gold-strong)]"
+                                  : "shrink-0 text-[var(--text-muted)] group-hover:text-[var(--text-primary)]"
+                              }
                             />
-                          ) : null}
-                        </>
-                      ) : null}
-                    </Link>
-                  );
-                })}
-              </div>
-            </section>
-          ))}
+
+                            {!collapsed ? (
+                              <>
+                                <span className="min-w-0 flex-1 truncate">
+                                  {label}
+                                </span>
+
+                                {active ? (
+                                  <ActiveChevron
+                                    size={14}
+                                    className="text-[var(--brand-gold)]"
+                                  />
+                                ) : null}
+                              </>
+                            ) : null}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </section>
+            );
+          })}
         </div>
       </nav>
 
@@ -211,9 +305,7 @@ function SidebarContent({
 }
 
 export function Sidebar() {
-  const {
-    isArabic,
-  } = useTranslation();
+  const { isArabic } = useTranslation();
 
   const {
     isSidebarCollapsed,

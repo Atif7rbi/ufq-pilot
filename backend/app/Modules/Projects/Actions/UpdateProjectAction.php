@@ -18,18 +18,13 @@ class UpdateProjectAction
             $data,
             $actor,
         ): Project {
-            if (isset($data['country_code'])) {
-                $data['country_code'] = strtoupper(
-                    $data['country_code']
-                );
-            }
+            unset(
+                $data['country_code'],
+                $data['currency'],
+            );
 
-            if (isset($data['currency'])) {
-                $data['currency'] = strtoupper(
-                    $data['currency']
-                );
-            }
-
+            $data['country_code'] = 'SA';
+            $data['currency'] = 'SAR';
             $data['updated_by'] = $actor->id;
 
             $project->update($data);

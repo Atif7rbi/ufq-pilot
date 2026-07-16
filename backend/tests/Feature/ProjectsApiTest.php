@@ -171,8 +171,6 @@ class ProjectsApiTest extends TestCase
         $this->putJson("/api/projects/{$projectId}", [
             'name' => 'مشروع بعد التعديل',
             'status' => 'planning',
-            'country_code' => 'sa',
-            'currency' => 'sar',
         ])
             ->assertOk()
             ->assertJsonPath(

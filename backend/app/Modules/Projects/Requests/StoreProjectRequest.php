@@ -39,12 +39,6 @@ class StoreProjectRequest extends FormRequest
                 'sometimes',
                 Rule::enum(ProjectStatus::class),
             ],
-            'country_code' => [
-                'sometimes',
-                'string',
-                'size:2',
-                'regex:/^[A-Za-z]{2}$/',
-            ],
             'city' => [
                 'required',
                 'string',
@@ -59,12 +53,6 @@ class StoreProjectRequest extends FormRequest
                 'nullable',
                 'string',
                 'max:500',
-            ],
-            'currency' => [
-                'sometimes',
-                'string',
-                'size:3',
-                'regex:/^[A-Za-z]{3}$/',
             ],
             'estimated_budget' => [
                 'nullable',

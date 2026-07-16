@@ -14,18 +14,28 @@ import { DashboardHero } from "@/components/dashboard/DashboardHero";
 import { ProjectsOverview } from "@/components/dashboard/ProjectsOverview";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { AppShell } from "@/components/layout/AppShell";
+import { useDashboard } from "@/hooks/useDashboard";
 import { useTranslation } from "@/hooks/useTranslation";
 
 export default function HomePage() {
-  const { t } = useTranslation();
+  const { t, isArabic } = useTranslation();
+  const dashboard = useDashboard();
 
   const stats = [
     {
       label: t("dashboard.stats.projects"),
-      value: "0",
-      description: t("dashboard.stats.noProjects"),
+      value: new Intl.NumberFormat("en-US").format(
+        dashboard.totalProjects
+      ),
+      description:
+        dashboard.totalProjects > 0
+          ? isArabic
+            ? "إجمالي المشاريع المسجلة"
+            : "Total registered projects"
+          : t("dashboard.stats.noProjects"),
       icon: FolderKanban,
       tone: "gold" as const,
+      href: "/projects/",
     },
     {
       label: t("dashboard.stats.customers"),
@@ -33,6 +43,7 @@ export default function HomePage() {
       description: t("dashboard.stats.noCustomers"),
       icon: Users,
       tone: "blue" as const,
+      href: "/customers/",
     },
     {
       label: t("dashboard.stats.units"),
@@ -40,6 +51,7 @@ export default function HomePage() {
       description: t("dashboard.stats.noUnits"),
       icon: Building2,
       tone: "green" as const,
+      href: "/units/",
     },
     {
       label: t("dashboard.stats.contracts"),
@@ -47,6 +59,7 @@ export default function HomePage() {
       description: t("dashboard.stats.noContracts"),
       icon: FileSignature,
       tone: "violet" as const,
+      href: "/contracts/",
     },
   ];
 
@@ -65,7 +78,12 @@ export default function HomePage() {
         </section>
 
         <section className="grid gap-5 xl:grid-cols-[1.45fr_0.75fr]">
-          <ProjectsOverview />
+          <ProjectsOverview
+            projects={dashboard.recentProjects}
+            isLoading={dashboard.isLoading}
+            error={dashboard.error}
+          />
+
           <ActivityPanel />
         </section>
 
