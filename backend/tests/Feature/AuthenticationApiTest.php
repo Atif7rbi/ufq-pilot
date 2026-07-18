@@ -3,22 +3,17 @@
 namespace Tests\Feature;
 
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
-use Tests\TestCase;
 
-class AuthenticationApiTest extends TestCase
+class AuthenticationApiTest extends ApiTestCase
 {
-    use RefreshDatabase;
-
     public function test_active_user_can_login_and_receive_token(): void
     {
-        User::factory()->create([
+        $this->createActiveUser([
             'name' => 'مدير النظام',
             'email' => 'admin@example.com',
             'password' => Hash::make('StrongPassword123!'),
-            'role' => 'administrator',
-            'status' => 'active',
+            'role' => User::ROLE_ADMINISTRATOR,
         ]);
 
         $response = $this->postJson('/api/auth/login', [
@@ -47,11 +42,7 @@ class AuthenticationApiTest extends TestCase
 
     public function test_authenticated_user_can_fetch_profile_using_bearer_token(): void
     {
-        $user = User::factory()->create([
-            'status' => 'active',
-        ]);
-
-        $token = $user->createToken('test')->plainTextToken;
+        [$user, $token] = $this->actingAsActiveUser();
 
         $this->withHeader(
             'Authorization',
@@ -64,11 +55,7 @@ class AuthenticationApiTest extends TestCase
 
     public function test_logout_deletes_current_token_only(): void
     {
-        $user = User::factory()->create([
-            'status' => 'active',
-        ]);
-
-        $token = $user->createToken('device-1')->plainTextToken;
+        [$user, $token] = $this->actingAsActiveUser([], 'device-1');
 
         $this->assertDatabaseCount('personal_access_tokens', 1);
 
@@ -84,10 +71,9 @@ class AuthenticationApiTest extends TestCase
 
     public function test_login_rejects_invalid_credentials(): void
     {
-        User::factory()->create([
+        $this->createActiveUser([
             'email' => 'admin@example.com',
             'password' => Hash::make('CorrectPassword123!'),
-            'status' => 'active',
         ]);
 
         $this->postJson('/api/auth/login', [
@@ -103,7 +89,7 @@ class AuthenticationApiTest extends TestCase
         User::factory()->create([
             'email' => 'admin@example.com',
             'password' => Hash::make('StrongPassword123!'),
-            'status' => 'suspended',
+            'status' => User::STATUS_SUSPENDED,
         ]);
 
         $this->postJson('/api/auth/login', [

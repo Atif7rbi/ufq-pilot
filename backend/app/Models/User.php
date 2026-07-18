@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
@@ -74,5 +75,19 @@ class User extends Authenticatable
     public function canManageUsers(): bool
     {
         return $this->isSystemOwner() || $this->isAdministrator();
+    }
+
+    public function tenantMemberships(): HasMany
+    {
+        return $this->hasMany(TenantUser::class);
+    }
+
+    public function activeTenantMemberships(): HasMany
+    {
+        return $this->tenantMemberships()
+            ->where(
+                'status',
+                TenantUser::STATUS_ACTIVE
+            );
     }
 }

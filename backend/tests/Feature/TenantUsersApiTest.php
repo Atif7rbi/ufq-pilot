@@ -1,0 +1,295 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\Tenant;
+use App\Models\TenantUser;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Sanctum\Sanctum;
+use Tests\TestCase;
+
+class TenantUsersApiTest extends TestCase
+{
+    use RefreshDatabase;
+
+    public function test_guest_cannot_access_users(): void
+    {
+        $this->getJson('/api/users')
+            ->assertUnauthorized();
+    }
+
+    public function test_company_administrator_can_list_users(): void
+    {
+        [$administrator, $tenant] =
+            $this->createCompanyAdministrator();
+
+        Sanctum::actingAs($administrator);
+
+        $this->getJson('/api/users')
+            ->assertOk()
+            ->assertJsonPath(
+                'data.summary.total',
+                1
+            )
+            ->assertJsonPath(
+                'data.users.data.0.user.email',
+                $administrator->email
+            );
+    }
+
+    public function test_company_administrator_can_create_user(): void
+    {
+        [$administrator] =
+            $this->createCompanyAdministrator();
+
+        Sanctum::actingAs($administrator);
+
+        $this->postJson('/api/users', [
+            'name' => 'موظف المبيعات',
+            'email' => 'sales@example.com',
+            'phone' => '0500000000',
+            'role' => User::ROLE_SALES,
+            'password' => 'Password8',
+            'password_confirmation' => 'Password8',
+        ])
+            ->assertCreated()
+            ->assertJsonPath(
+                'data.user.user.email',
+                'sales@example.com'
+            );
+
+        $this->assertDatabaseHas('users', [
+            'email' => 'sales@example.com',
+            'role' => User::ROLE_SALES,
+        ]);
+
+        $this->assertDatabaseHas('tenant_users', [
+            'user_id' => User::query()
+                ->where('email', 'sales@example.com')
+                ->value('id'),
+            'status' => TenantUser::STATUS_ACTIVE,
+        ]);
+    }
+
+    public function test_password_requires_uppercase_lowercase_and_number(): void
+    {
+        [$administrator] =
+            $this->createCompanyAdministrator();
+
+        Sanctum::actingAs($administrator);
+
+        $this->postJson('/api/users', [
+            'name' => 'مستخدم',
+            'email' => 'user@example.com',
+            'role' => User::ROLE_EMPLOYEE,
+            'password' => 'password',
+            'password_confirmation' => 'password',
+        ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('password');
+    }
+
+    public function test_user_limit_is_enforced(): void
+    {
+        [$administrator, $tenant] =
+            $this->createCompanyAdministrator();
+
+        foreach (range(1, 2) as $index) {
+            $user = User::factory()->create([
+                'role' => User::ROLE_EMPLOYEE,
+                'status' => User::STATUS_ACTIVE,
+            ]);
+
+            TenantUser::query()->create([
+                'tenant_id' => $tenant->id,
+                'user_id' => $user->id,
+                'status' => TenantUser::STATUS_ACTIVE,
+                'joined_at' => now(),
+                'created_by' => $administrator->id,
+                'updated_by' => $administrator->id,
+            ]);
+        }
+
+        Sanctum::actingAs($administrator);
+
+        $this->postJson('/api/users', [
+            'name' => 'مستخدم رابع',
+            'email' => 'fourth@example.com',
+            'role' => User::ROLE_EMPLOYEE,
+            'password' => 'Password8',
+            'password_confirmation' => 'Password8',
+        ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('users');
+    }
+
+    public function test_administrator_can_update_user(): void
+    {
+        [$administrator, $tenant] =
+            $this->createCompanyAdministrator();
+
+        $employee = User::factory()->create([
+            'role' => User::ROLE_EMPLOYEE,
+            'status' => User::STATUS_ACTIVE,
+        ]);
+
+        $membership = TenantUser::query()->create([
+            'tenant_id' => $tenant->id,
+            'user_id' => $employee->id,
+            'status' => TenantUser::STATUS_ACTIVE,
+            'joined_at' => now(),
+            'created_by' => $administrator->id,
+            'updated_by' => $administrator->id,
+        ]);
+
+        Sanctum::actingAs($administrator);
+
+        $this->putJson(
+            "/api/users/{$membership->id}",
+            [
+                'name' => 'مدير المشاريع',
+                'role' => User::ROLE_PROJECT_MANAGER,
+                'status' => TenantUser::STATUS_PAUSED,
+            ]
+        )
+            ->assertOk()
+            ->assertJsonPath(
+                'data.user.user.role',
+                User::ROLE_PROJECT_MANAGER
+            )
+            ->assertJsonPath(
+                'data.user.status',
+                TenantUser::STATUS_PAUSED
+            );
+    }
+
+    public function test_administrator_can_remove_membership(): void
+    {
+        [$administrator, $tenant] =
+            $this->createCompanyAdministrator();
+
+        $employee = User::factory()->create([
+            'role' => User::ROLE_EMPLOYEE,
+            'status' => User::STATUS_ACTIVE,
+        ]);
+
+        $membership = TenantUser::query()->create([
+            'tenant_id' => $tenant->id,
+            'user_id' => $employee->id,
+            'status' => TenantUser::STATUS_ACTIVE,
+            'joined_at' => now(),
+            'created_by' => $administrator->id,
+            'updated_by' => $administrator->id,
+        ]);
+
+        Sanctum::actingAs($administrator);
+
+        $this->deleteJson(
+            "/api/users/{$membership->id}"
+        )->assertOk();
+
+        $this->assertDatabaseHas('tenant_users', [
+            'id' => $membership->id,
+            'status' => TenantUser::STATUS_REMOVED,
+        ]);
+
+        $this->assertDatabaseHas('users', [
+            'id' => $employee->id,
+            'status' => User::STATUS_ARCHIVED,
+        ]);
+    }
+
+    public function test_non_administrator_can_list_users_read_only(): void
+    {
+        [$administrator, $tenant] =
+            $this->createCompanyAdministrator();
+
+        $salesUser = User::factory()->create([
+            'role' => User::ROLE_SALES,
+            'status' => User::STATUS_ACTIVE,
+        ]);
+
+        TenantUser::query()->create([
+            'tenant_id' => $tenant->id,
+            'user_id' => $salesUser->id,
+            'status' => TenantUser::STATUS_ACTIVE,
+            'joined_at' => now(),
+            'created_by' => $administrator->id,
+            'updated_by' => $administrator->id,
+        ]);
+
+        Sanctum::actingAs($salesUser);
+
+        $this->getJson('/api/users')
+            ->assertOk()
+            ->assertJsonPath(
+                'data.summary.total',
+                2
+            );
+    }
+
+    public function test_non_administrator_cannot_update_or_remove_users(): void
+    {
+        [$administrator, $tenant] =
+            $this->createCompanyAdministrator();
+
+        $salesUser = User::factory()->create([
+            'role' => User::ROLE_SALES,
+            'status' => User::STATUS_ACTIVE,
+        ]);
+
+        $salesMembership = TenantUser::query()->create([
+            'tenant_id' => $tenant->id,
+            'user_id' => $salesUser->id,
+            'status' => TenantUser::STATUS_ACTIVE,
+            'joined_at' => now(),
+            'created_by' => $administrator->id,
+            'updated_by' => $administrator->id,
+        ]);
+
+        Sanctum::actingAs($salesUser);
+
+        $this->putJson(
+            "/api/users/{$salesMembership->id}",
+            [
+                'name' => 'اسم معدل',
+            ]
+        )->assertForbidden();
+
+        $this->deleteJson(
+            "/api/users/{$salesMembership->id}"
+        )->assertForbidden();
+    }
+
+    private function createCompanyAdministrator(): array
+    {
+        $tenant = Tenant::query()->create([
+            'name' => 'شركة أفق',
+            'slug' => 'ufq',
+            'status' => Tenant::STATUS_ACTIVE,
+            'timezone' => 'Asia/Riyadh',
+            'locale' => 'ar-SA',
+            'currency' => 'SAR',
+        ]);
+
+        $administrator = User::factory()->create([
+            'role' => User::ROLE_ADMINISTRATOR,
+            'status' => User::STATUS_ACTIVE,
+        ]);
+
+        TenantUser::query()->create([
+            'tenant_id' => $tenant->id,
+            'user_id' => $administrator->id,
+            'status' => TenantUser::STATUS_ACTIVE,
+            'joined_at' => now(),
+            'created_by' => $administrator->id,
+            'updated_by' => $administrator->id,
+        ]);
+
+        return [
+            $administrator,
+            $tenant,
+        ];
+    }
+}

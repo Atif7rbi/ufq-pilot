@@ -2,17 +2,12 @@
 
 namespace Tests\Feature;
 
-use App\Models\User;
 use App\Modules\Projects\Models\Project;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Laravel\Sanctum\Sanctum;
-use Tests\TestCase;
 
-class ProjectsApiTest extends TestCase
+class ProjectsApiTest extends ApiTestCase
 {
-    use RefreshDatabase;
-
     protected function setUp(): void
     {
         parent::setUp();
@@ -38,7 +33,7 @@ class ProjectsApiTest extends TestCase
 
     public function test_authenticated_user_can_create_project_with_generated_number(): void
     {
-        $user = User::factory()->create();
+        $user = $this->createActiveUser();
 
         Sanctum::actingAs($user);
 
@@ -54,26 +49,11 @@ class ProjectsApiTest extends TestCase
 
         $response
             ->assertCreated()
-            ->assertJsonPath(
-                'data.project.project_number',
-                'PRJ-2026-001'
-            )
-            ->assertJsonPath(
-                'data.project.project_number_year',
-                2026
-            )
-            ->assertJsonPath(
-                'data.project.project_sequence_number',
-                1
-            )
-            ->assertJsonPath(
-                'data.project.status',
-                'draft'
-            )
-            ->assertJsonPath(
-                'data.project.data_origin',
-                'user'
-            );
+            ->assertJsonPath('data.project.project_number', 'PRJ-2026-001')
+            ->assertJsonPath('data.project.project_number_year', 2026)
+            ->assertJsonPath('data.project.project_sequence_number', 1)
+            ->assertJsonPath('data.project.status', 'draft')
+            ->assertJsonPath('data.project.data_origin', 'user');
 
         $this->assertDatabaseHas('projects', [
             'project_number' => 'PRJ-2026-001',
@@ -88,7 +68,7 @@ class ProjectsApiTest extends TestCase
 
     public function test_project_numbers_increment_within_same_year(): void
     {
-        $user = User::factory()->create();
+        $user = $this->createActiveUser();
 
         Sanctum::actingAs($user);
 
@@ -112,7 +92,7 @@ class ProjectsApiTest extends TestCase
 
     public function test_user_can_request_custom_sequence_and_next_number_continues_after_it(): void
     {
-        $user = User::factory()->create();
+        $user = $this->createActiveUser();
 
         Sanctum::actingAs($user);
 
@@ -142,7 +122,7 @@ class ProjectsApiTest extends TestCase
 
     public function test_authenticated_user_can_list_show_and_update_project(): void
     {
-        $user = User::factory()->create();
+        $user = $this->createActiveUser();
 
         Sanctum::actingAs($user);
 
@@ -167,7 +147,6 @@ class ProjectsApiTest extends TestCase
                 'data.project.name',
                 'مشروع قبل التعديل'
             );
-
         $this->putJson("/api/projects/{$projectId}", [
             'name' => 'مشروع بعد التعديل',
             'status' => 'planning',
@@ -200,7 +179,7 @@ class ProjectsApiTest extends TestCase
 
     public function test_project_validation_rejects_invalid_business_values(): void
     {
-        $user = User::factory()->create();
+        $user = $this->createActiveUser();
 
         Sanctum::actingAs($user);
 
@@ -226,7 +205,7 @@ class ProjectsApiTest extends TestCase
 
     public function test_authenticated_user_can_soft_delete_project(): void
     {
-        $user = User::factory()->create();
+        $user = $this->createActiveUser();
 
         Sanctum::actingAs($user);
 
