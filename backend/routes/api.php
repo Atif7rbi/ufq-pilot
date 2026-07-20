@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\SystemSettingController;
+use App\Modules\Customers\Controllers\CustomerController;
 use App\Modules\Projects\Controllers\ProjectController;
 use App\Modules\Users\Controllers\TenantUserController;
 use Illuminate\Support\Facades\Route;
@@ -45,4 +46,34 @@ Route::middleware([
         'users',
         TenantUserController::class
     );
+
+    Route::get(
+        '/customers',
+        [CustomerController::class, 'index']
+    )->name('customers.index');
+
+    Route::post(
+        '/customers',
+        [CustomerController::class, 'store']
+    )->name('customers.store');
+
+    Route::get(
+        '/customers/{customer}',
+        [CustomerController::class, 'show']
+    )->name('customers.show');
+
+    Route::patch(
+        '/customers/{customer}',
+        [CustomerController::class, 'update']
+    )->name('customers.update');
+
+    Route::patch(
+        '/customers/{customer}/archive',
+        [CustomerController::class, 'archive']
+    )->name('customers.archive');
+
+    Route::patch(
+        '/customers/{customer}/restore',
+        [CustomerController::class, 'restore']
+    )->name('customers.restore');
 });

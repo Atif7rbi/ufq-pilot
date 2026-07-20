@@ -1,0 +1,153 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Modules\Customers\Requests;
+
+use App\Modules\Customers\Enums\CustomerCategory;
+use App\Modules\Customers\Enums\CustomerStatus;
+use App\Modules\Customers\Enums\CustomerType;
+use App\Modules\Shared\Services\ResolveActiveMembership;
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
+
+final class UpdateCustomerRequest extends FormRequest
+{
+    public function authorize(): bool
+    {
+        return $this->user() !== null;
+    }
+
+    public function rules(
+        ResolveActiveMembership $resolveActiveMembership,
+    ): array {
+        $membership = $resolveActiveMembership->handle(
+            $this->user()
+        );
+
+        $tenantId = (string) $membership->tenant_id;
+        $customerId = $this->customerId();
+
+        return [
+            'type' => [
+                'sometimes',
+                'required',
+                Rule::enum(CustomerType::class),
+            ],
+
+            'category' => [
+                'sometimes',
+                'required',
+                Rule::enum(CustomerCategory::class),
+            ],
+
+            'status' => [
+                'sometimes',
+                'required',
+                Rule::in(CustomerStatus::editableValues()),
+            ],
+
+            'name' => [
+                'sometimes',
+                'required',
+                'string',
+                'max:255',
+            ],
+
+            'phone' => [
+                'sometimes',
+                'required',
+                'string',
+                'max:30',
+                Rule::unique('customers', 'phone')
+                    ->where(
+                        fn ($query) => $query->where(
+                            'tenant_id',
+                            $tenantId
+                        )
+                    )
+                    ->ignore($customerId),
+            ],
+
+            'email' => [
+                'sometimes',
+                'nullable',
+                'email',
+                'max:255',
+            ],
+
+            'national_id' => [
+                'sometimes',
+                'nullable',
+                'string',
+                'max:50',
+                Rule::prohibitedIf(
+                    fn (): bool => $this->submittedType()
+                        === CustomerType::Company->value
+                ),
+                Rule::unique('customers', 'national_id')
+                    ->where(
+                        fn ($query) => $query->where(
+                            'tenant_id',
+                            $tenantId
+                        )
+                    )
+                    ->ignore($customerId),
+            ],
+
+            'commercial_registration_number' => [
+                'sometimes',
+                'nullable',
+                'string',
+                'max:50',
+                Rule::prohibitedIf(
+                    fn (): bool => $this->submittedType()
+                        === CustomerType::Individual->value
+                ),
+                Rule::unique(
+                    'customers',
+                    'commercial_registration_number'
+                )->where(
+                    fn ($query) => $query->where(
+                        'tenant_id',
+                        $tenantId
+                    )
+                )->ignore($customerId),
+            ],
+
+            'city' => [
+                'sometimes',
+                'nullable',
+                'string',
+                'max:120',
+            ],
+
+            'address' => [
+                'sometimes',
+                'nullable',
+                'string',
+                'max:500',
+            ],
+
+            'notes' => [
+                'sometimes',
+                'nullable',
+                'string',
+            ],
+        ];
+    }
+
+    private function customerId(): string
+    {
+        return (string) $this->route('customer');
+    }
+
+    private function submittedType(): ?string
+    {
+        if (! $this->has('type')) {
+            return null;
+        }
+
+        return $this->string('type')->toString();
+    }
+}
