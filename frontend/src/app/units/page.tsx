@@ -1,15 +1,73 @@
 "use client";
 
-import { Building2 } from "lucide-react";
+import { Archive, Building2, Edit3, Eye, Filter, Plus, RefreshCw, RotateCcw, Search } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
 
-import { ModulePlaceholder } from "@/components/layout/ModulePlaceholder";
+import { UnitArchiveDialog } from "@/components/units/UnitArchiveDialog";
+import { UnitDetailsModal } from "@/components/units/UnitDetailsModal";
+import { UnitFormModal } from "@/components/units/UnitFormModal";
+import { AppShell } from "@/components/layout/AppShell";
+import { Button } from "@/components/ui/Button";
+import { useAuth } from "@/providers/AuthProvider";
+import { fetchProjects } from "@/services/projects";
+import { archiveUnit, createUnit, fetchUnit, fetchUnits, restoreUnit, updateUnit } from "@/services/units";
+import type { Project } from "@/types/project";
+import type { Unit, UnitFormPayload, UnitStatus, UnitSummary, UnitType } from "@/types/unit";
 
-export default function Page() {
-  return (
-    <ModulePlaceholder
-      titleKey="pages.units.title"
-      descriptionKey="pages.units.description"
-      icon={Building2}
-    />
-  );
+type ArchiveAction = "archive" | "restore";
+const emptySummary: UnitSummary = { total: 0, available: 0, sold: 0 };
+const typeLabels: Record<UnitType, string> = { apartment: "شقة", villa: "فيلا", office: "مكتب", shop: "محل", land: "أرض", other: "أخرى" };
+
+export default function UnitsPage() {
+  const { token } = useAuth();
+  const [units, setUnits] = useState<Unit[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [summary, setSummary] = useState<UnitSummary>(emptySummary);
+  const [page, setPage] = useState(1);
+  const [lastPage, setLastPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [search, setSearch] = useState("");
+  const [projectFilter, setProjectFilter] = useState("all");
+  const [typeFilter, setTypeFilter] = useState<UnitType | "all">("all");
+  const [statusFilter, setStatusFilter] = useState<UnitStatus | "all">("all");
+  const [archiveFilter, setArchiveFilter] = useState<"all" | "active" | "archived">("active");
+  const [isLoading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [formUnit, setFormUnit] = useState<Unit | null>(null);
+  const [isFormOpen, setFormOpen] = useState(false);
+  const [isSubmitting, setSubmitting] = useState(false);
+  const [detailUnit, setDetailUnit] = useState<Unit | null>(null);
+  const [isDetailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState<string | null>(null);
+  const [actionUnit, setActionUnit] = useState<Unit | null>(null);
+  const [action, setAction] = useState<ArchiveAction>("archive");
+  const [isProcessing, setProcessing] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  const loadUnits = useCallback(async (targetPage = page) => {
+    if (!token) return;
+    setLoading(true); setError(null);
+    try {
+      const response = await fetchUnits(token, { page: targetPage, per_page: 20, search, project_id: projectFilter === "all" ? undefined : projectFilter, unit_type: typeFilter === "all" ? undefined : typeFilter, status: statusFilter === "all" ? undefined : statusFilter, archived: archiveFilter === "all" ? undefined : archiveFilter === "archived" });
+      setUnits(response.data.units.data); setPage(response.data.units.current_page); setLastPage(response.data.units.last_page); setTotal(response.data.units.total); setSummary(response.data.summary);
+    } catch (caughtError) { setError(caughtError instanceof Error ? caughtError.message : "تعذر تحميل الوحدات."); }
+    finally { setLoading(false); }
+  }, [token, page, search, projectFilter, typeFilter, statusFilter, archiveFilter]);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => { void loadUnits(); }, 0);
+    return () => window.clearTimeout(timeout);
+  }, [loadUnits]);
+  useEffect(() => { if (!token) return; let cancelled = false; fetchProjects(token, { perPage: 100 }).then((response) => { if (!cancelled) setProjects(response.data.data); }).catch(() => { if (!cancelled) setProjects([]); }); return () => { cancelled = true; }; }, [token]);
+
+  const changeFilter = (callback: () => void) => { callback(); setPage(1); };
+  const openDetail = async (unit: Unit) => { if (!token) return; setDetailUnit(unit); setDetailLoading(true); setDetailError(null); try { setDetailUnit(await fetchUnit(token, unit.id)); } catch (caughtError) { setDetailError(caughtError instanceof Error ? caughtError.message : "تعذر تحميل تفاصيل الوحدة."); } finally { setDetailLoading(false); } };
+  const openEdit = async (unit: Unit) => { if (!token) return; setSubmitting(true); try { setFormUnit(await fetchUnit(token, unit.id)); setFormOpen(true); } catch (caughtError) { setError(caughtError instanceof Error ? caughtError.message : "تعذر تحميل الوحدة."); } finally { setSubmitting(false); } };
+  const submitForm = async (payload: UnitFormPayload) => { if (!token) return; setSubmitting(true); try { if (formUnit) await updateUnit(token, formUnit.id, payload); else await createUnit(token, payload); await loadUnits(formUnit ? page : 1); setFormOpen(false); setFormUnit(null); } finally { setSubmitting(false); } };
+  const confirmAction = async () => { if (!token || !actionUnit) return; setProcessing(true); setActionError(null); try { if (action === "archive") await archiveUnit(token, actionUnit.id); else await restoreUnit(token, actionUnit.id); await loadUnits(); setActionUnit(null); } catch (caughtError) { setActionError(caughtError instanceof Error ? caughtError.message : "تعذر إتمام العملية."); } finally { setProcessing(false); } };
+  const hasFilters = Boolean(search || projectFilter !== "all" || typeFilter !== "all" || statusFilter !== "all" || archiveFilter !== "active");
+
+  return <AppShell><div className="mx-auto max-w-[1600px] space-y-5"><section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[var(--shadow-sm)] sm:p-6"><div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-center"><div className="flex items-center gap-3"><span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--brand-gold-soft)] text-[var(--brand-gold-strong)]"><Building2 size={21} /></span><div><h2 className="text-xl font-bold text-[var(--text-primary)]">الوحدات</h2><p className="mt-1 text-xs text-[var(--text-secondary)]">إدارة الوحدات والأسعار والحالة</p></div></div><Button type="button" onClick={() => { setFormUnit(null); setFormOpen(true); }} className="gap-2 !bg-[var(--brand-gold)] !text-white hover:!bg-[var(--brand-gold-strong)]"><Plus size={18} />إضافة وحدة</Button></div></section><section className="grid gap-4 sm:grid-cols-3"><Statistic title="إجمالي الوحدات" value={summary.total} /><Statistic title="الوحدات المتاحة" value={summary.available} tone="success" /><Statistic title="الوحدات المباعة" value={summary.sold} tone="info" /></section><section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-sm)] sm:p-5"><div className="mb-4 flex items-center gap-2"><Filter size={17} className="text-[var(--brand-gold-strong)]" /><h3 className="text-sm font-bold text-[var(--text-primary)]">الفلاتر</h3></div><div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(220px,1fr)_180px_150px_150px_150px_auto]"><div className="relative"><Search size={17} className="pointer-events-none absolute start-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" /><input type="search" value={search} onChange={(event) => changeFilter(() => setSearch(event.target.value))} placeholder="البحث برقم الوحدة" className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] ps-11 pe-4 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--brand-gold)]" /></div><select value={projectFilter} onChange={(event) => changeFilter(() => setProjectFilter(event.target.value))} className="h-11 rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] px-4 text-sm"><option value="all">كل المشاريع</option>{projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</select><select value={typeFilter} onChange={(event) => changeFilter(() => setTypeFilter(event.target.value as UnitType | "all") )} className="h-11 rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] px-4 text-sm"><option value="all">كل الأنواع</option>{Object.entries(typeLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><select value={statusFilter} onChange={(event) => changeFilter(() => setStatusFilter(event.target.value as UnitStatus | "all"))} className="h-11 rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] px-4 text-sm"><option value="all">كل الحالات</option><option value="available">متاحة</option><option value="sold">مباعة</option></select><select value={archiveFilter} onChange={(event) => changeFilter(() => setArchiveFilter(event.target.value as "all" | "active" | "archived"))} className="h-11 rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] px-4 text-sm"><option value="active">غير مؤرشفة</option><option value="archived">مؤرشفة</option><option value="all">الكل</option></select><Button type="button" variant="secondary" onClick={() => void loadUnits()} disabled={isLoading} className="gap-2"><RefreshCw size={17} className={isLoading ? "animate-spin" : ""} />تحديث</Button></div></section><section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-sm)] sm:p-5"><div className="mb-5 flex items-center justify-between"><p className="text-sm font-bold text-[var(--text-primary)]">النتائج: {total}</p></div>{error ? <div className="mb-5 rounded-xl border border-[var(--danger)]/25 bg-[var(--danger-soft)] px-4 py-3 text-sm font-semibold text-[var(--danger)]">{error}</div> : null}{isLoading ? <div className="flex min-h-72 items-center justify-center"><div className="text-center"><div className="mx-auto h-9 w-9 animate-spin rounded-full border-2 border-[var(--border)] border-t-[var(--brand-gold)]" /><p className="mt-4 text-sm text-[var(--text-secondary)]">جارٍ تحميل الوحدات...</p></div></div> : units.length === 0 ? <div className="flex min-h-72 items-center justify-center px-6 text-center"><div><Building2 size={28} className="mx-auto text-[var(--brand-gold-strong)]" /><h3 className="mt-5 text-base font-bold text-[var(--text-primary)]">لا توجد وحدات</h3><p className="mt-2 text-sm text-[var(--text-secondary)]">{hasFilters ? "لا توجد وحدات تطابق الفلاتر الحالية." : "ابدأ بإضافة أول وحدة داخل المشروع."}</p></div></div> : <div className="overflow-x-auto"><table className="w-full min-w-[850px] text-right"><thead className="border-b border-[var(--border)] text-xs text-[var(--text-secondary)]"><tr><th className="px-3 py-3">رقم الوحدة</th><th className="px-3 py-3">المشروع</th><th className="px-3 py-3">النوع</th><th className="px-3 py-3">السعر</th><th className="px-3 py-3">الحالة</th><th className="px-3 py-3">الإجراءات</th></tr></thead><tbody>{units.map((unit) => <tr key={unit.id} className="border-b border-[var(--border)] last:border-0"><td className="px-3 py-4 font-bold text-[var(--text-primary)]">{unit.unit_number}{unit.archived_at ? <span className="me-2 rounded-full bg-[var(--surface-muted)] px-2 py-1 text-[10px] text-[var(--text-secondary)]">مؤرشفة</span> : null}</td><td className="px-3 py-4 text-sm text-[var(--text-secondary)]">{unit.project?.name ?? "—"}</td><td className="px-3 py-4 text-sm text-[var(--text-secondary)]">{typeLabels[unit.unit_type]}</td><td className="px-3 py-4 text-sm font-semibold text-[var(--text-primary)]">{new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 }).format(Number(unit.selling_price))} {unit.project?.currency ?? ""}</td><td className="px-3 py-4"><span className={unit.status === "available" ? "rounded-full bg-[var(--success-soft)] px-3 py-1 text-xs font-bold text-[var(--success)]" : "rounded-full bg-[var(--info-soft)] px-3 py-1 text-xs font-bold text-[var(--info)]"}>{unit.status === "available" ? "متاحة" : "مباعة"}</span></td><td className="px-3 py-4"><div className="flex gap-2"><button type="button" onClick={() => void openDetail(unit)} className="rounded-lg p-2 text-[var(--info)] hover:bg-[var(--info-soft)]" aria-label="عرض"><Eye size={17} /></button>{!unit.archived_at ? <><button type="button" onClick={() => void openEdit(unit)} className="rounded-lg p-2 text-[var(--brand-gold-strong)] hover:bg-[var(--brand-gold-soft)]" aria-label="تعديل"><Edit3 size={17} /></button><button type="button" onClick={() => { setActionUnit(unit); setAction("archive"); setActionError(null); }} className="rounded-lg p-2 text-[var(--text-secondary)] hover:bg-[var(--surface-muted)]" aria-label="أرشفة"><Archive size={17} /></button></> : <button type="button" onClick={() => { setActionUnit(unit); setAction("restore"); setActionError(null); }} className="rounded-lg p-2 text-[var(--success)] hover:bg-[var(--success-soft)]" aria-label="استعادة"><RotateCcw size={17} /></button>}</div></td></tr>)}</tbody></table></div>}{lastPage > 1 ? <div className="mt-5 flex items-center justify-between border-t border-[var(--border)] pt-5"><Button type="button" variant="secondary" disabled={isLoading || page === 1} onClick={() => setPage((current) => current - 1)}>السابق</Button><p className="text-sm font-semibold text-[var(--text-secondary)]">الصفحة {page} من {lastPage}</p><Button type="button" variant="secondary" disabled={isLoading || page === lastPage} onClick={() => setPage((current) => current + 1)}>التالي</Button></div> : null}</section></div>{isFormOpen ? <UnitFormModal key={formUnit?.id ?? "new-unit"} isOpen unit={formUnit} projects={projects} isSubmitting={isSubmitting} onClose={() => { if (!isSubmitting) { setFormOpen(false); setFormUnit(null); } }} onSubmit={submitForm} /> : null}<UnitDetailsModal unit={detailUnit} isLoading={isDetailLoading} error={detailError} onClose={() => { setDetailUnit(null); setDetailError(null); }} /><UnitArchiveDialog unit={actionUnit} action={action} isProcessing={isProcessing} error={actionError} onCancel={() => { if (!isProcessing) setActionUnit(null); }} onConfirm={confirmAction} /></AppShell>;
 }
+
+function Statistic({ title, value, tone = "gold" }: { title: string; value: number; tone?: "gold" | "success" | "info" }) { const classes = { gold: "bg-[var(--brand-gold-soft)] text-[var(--brand-gold-strong)]", success: "bg-[var(--success-soft)] text-[var(--success)]", info: "bg-[var(--info-soft)] text-[var(--info)]" }; return <article className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[var(--shadow-sm)]"><div className="flex items-center justify-between"><div><p className="text-xs font-semibold text-[var(--text-secondary)]">{title}</p><p className="mt-3 text-3xl font-bold text-[var(--text-primary)]">{value}</p></div><span className={`flex h-11 w-11 items-center justify-center rounded-2xl ${classes[tone]}`}><Building2 size={20} /></span></div></article>; }
