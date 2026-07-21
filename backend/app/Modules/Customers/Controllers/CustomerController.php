@@ -138,9 +138,32 @@ final class CustomerController extends Controller
             perPage: (int) ($validated['per_page'] ?? 20)
         );
 
+        $summary = Customer::query()
+            ->where('tenant_id', $membership->tenant_id)
+            ->selectRaw('count(*) as total')
+            ->selectRaw(
+                'count(*) filter (where status = ?) as customers',
+                [CustomerStatus::Customer->value]
+            )
+            ->selectRaw(
+                'count(*) filter (where status = ?) as leads',
+                [CustomerStatus::Lead->value]
+            )
+            ->selectRaw(
+                'count(*) filter (where status = ?) as archived',
+                [CustomerStatus::Archived->value]
+            )
+            ->firstOrFail();
+
         return response()->json([
             'data' => [
                 'customers' => $customers,
+                'summary' => [
+                    'total' => (int) $summary->total,
+                    'customers' => (int) $summary->customers,
+                    'leads' => (int) $summary->leads,
+                    'archived' => (int) $summary->archived,
+                ],
             ],
         ]);
     }

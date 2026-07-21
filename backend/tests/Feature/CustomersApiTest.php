@@ -421,7 +421,11 @@ final class CustomersApiTest extends ApiTestCase
             ->assertJsonPath(
                 'data.customers.data.0.id',
                 $target->id
-            );
+            )
+            ->assertJsonPath('data.summary.total', 2)
+            ->assertJsonPath('data.summary.customers', 1)
+            ->assertJsonPath('data.summary.leads', 1)
+            ->assertJsonPath('data.summary.archived', 0);
     }
 
     public function test_authenticated_user_can_update_customer(): void

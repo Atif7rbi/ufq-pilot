@@ -80,7 +80,17 @@ export type CustomerPagination = {
 };
 
 export type CustomersResponse = {
-  data: CustomerPagination;
+  data: {
+    customers: CustomerPagination;
+    summary: CustomerSummary;
+  };
+};
+
+export type CustomerSummary = {
+  total: number;
+  customers: number;
+  leads: number;
+  archived: number;
 };
 
 export type CustomerResponse = {

@@ -3,6 +3,7 @@ import type {
   CustomerFormPayload,
   CustomerPagination,
   CustomerResponse,
+  CustomerSummary,
   CustomersResponse,
 } from "@/types/customer";
 
@@ -94,11 +95,12 @@ export async function fetchCustomers(
   const result = (await response.json()) as {
     data: {
       customers: CustomerPagination;
+      summary: CustomerSummary;
     };
   };
 
   return {
-    data: result.data.customers,
+    data: result.data,
   };
 }
 

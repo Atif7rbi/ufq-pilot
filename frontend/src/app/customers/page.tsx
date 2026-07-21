@@ -14,7 +14,6 @@ import {
 import {
   useCallback,
   useEffect,
-  useMemo,
   useState,
 } from "react";
 
@@ -36,6 +35,8 @@ import type {
   Customer,
   CustomerCategory,
   CustomerFormPayload,
+  CustomerPagination,
+  CustomerSummary,
   CustomerStatus,
   CustomerType,
 } from "@/types/customer";
@@ -49,6 +50,24 @@ export default function CustomersPage() {
   const [customers, setCustomers] = useState<
     Customer[]
   >([]);
+
+  const [pagination, setPagination] =
+    useState<Pick<
+      CustomerPagination,
+      "current_page" | "last_page" | "total"
+    >>({
+      current_page: 1,
+      last_page: 1,
+      total: 0,
+    });
+
+  const [summary, setSummary] =
+    useState<CustomerSummary>({
+      total: 0,
+      customers: 0,
+      leads: 0,
+      archived: 0,
+    });
 
   const [isLoading, setIsLoading] =
     useState(true);
@@ -124,6 +143,10 @@ export default function CustomersPage() {
         customer: "عميل",
         inactive: "غير نشط",
         archivedStatus: "مؤرشف",
+        previous: "السابق",
+        next: "التالي",
+        page: "الصفحة",
+        of: "من",
       }
     : {
         title: "Customers",
@@ -160,6 +183,10 @@ export default function CustomersPage() {
         customer: "Customer",
         inactive: "Inactive",
         archivedStatus: "Archived",
+        previous: "Previous",
+        next: "Next",
+        page: "Page",
+        of: "of",
       };
 
   const statusLabels: Record<
@@ -192,7 +219,7 @@ export default function CustomersPage() {
   };
 
   const loadCustomers =
-    useCallback(async (): Promise<void> => {
+    useCallback(async (page = pagination.current_page): Promise<void> => {
       if (!token) {
         return;
       }
@@ -204,12 +231,32 @@ export default function CustomersPage() {
         const response = await fetchCustomers(
           token,
           {
-            page: 1,
-            per_page: 100,
+            page,
+            per_page: 20,
+            search: searchQuery,
+            status:
+              statusFilter === "all"
+                ? undefined
+                : statusFilter,
+            type:
+              typeFilter === "all"
+                ? undefined
+                : typeFilter,
+            category:
+              categoryFilter === "all"
+                ? undefined
+                : categoryFilter,
           }
         );
 
-        setCustomers(response.data.data);
+        setCustomers(response.data.customers.data);
+        setPagination({
+          current_page:
+            response.data.customers.current_page,
+          last_page: response.data.customers.last_page,
+          total: response.data.customers.total,
+        });
+        setSummary(response.data.summary);
       } catch (caughtError) {
         setError(
           caughtError instanceof Error
@@ -219,7 +266,15 @@ export default function CustomersPage() {
       } finally {
         setIsLoading(false);
       }
-    }, [token, labels.loadError]);
+    }, [
+      token,
+      pagination.current_page,
+      searchQuery,
+      statusFilter,
+      typeFilter,
+      categoryFilter,
+      labels.loadError,
+    ]);
 
   useEffect(() => {
     if (!token) {
@@ -229,12 +284,33 @@ export default function CustomersPage() {
     let isCancelled = false;
 
     fetchCustomers(token, {
-      page: 1,
-      per_page: 100,
+      page: pagination.current_page,
+      per_page: 20,
+      search: searchQuery,
+      status:
+        statusFilter === "all"
+          ? undefined
+          : statusFilter,
+      type:
+        typeFilter === "all"
+          ? undefined
+          : typeFilter,
+      category:
+        categoryFilter === "all"
+          ? undefined
+          : categoryFilter,
     })
       .then((response) => {
         if (!isCancelled) {
-          setCustomers(response.data.data);
+          setCustomers(response.data.customers.data);
+          setPagination((current) => ({
+            ...current,
+            current_page:
+              response.data.customers.current_page,
+            last_page: response.data.customers.last_page,
+            total: response.data.customers.total,
+          }));
+          setSummary(response.data.summary);
           setError(null);
         }
       })
@@ -256,70 +332,14 @@ export default function CustomersPage() {
     return () => {
       isCancelled = true;
     };
-  }, [token, labels.loadError]);
-
-  const statistics = useMemo(() => {
-    return {
-      total: customers.length,
-      customers: customers.filter(
-        (customer) =>
-          customer.status === "customer"
-      ).length,
-      leads: customers.filter(
-        (customer) => customer.status === "lead"
-      ).length,
-      archived: customers.filter(
-        (customer) =>
-          customer.status === "archived"
-      ).length,
-    };
-  }, [customers]);
-
-  const filteredCustomers = useMemo(() => {
-    const normalizedSearch =
-      searchQuery.trim().toLocaleLowerCase();
-
-    return customers.filter((customer) => {
-      const matchesSearch =
-        !normalizedSearch ||
-        customer.name
-          .toLocaleLowerCase()
-          .includes(normalizedSearch) ||
-        customer.phone
-          .toLocaleLowerCase()
-          .includes(normalizedSearch) ||
-        customer.email
-          ?.toLocaleLowerCase()
-          .includes(normalizedSearch) ||
-        customer.city
-          ?.toLocaleLowerCase()
-          .includes(normalizedSearch);
-
-      const matchesStatus =
-        statusFilter === "all" ||
-        customer.status === statusFilter;
-
-      const matchesType =
-        typeFilter === "all" ||
-        customer.type === typeFilter;
-
-      const matchesCategory =
-        categoryFilter === "all" ||
-        customer.category === categoryFilter;
-
-      return (
-        matchesSearch &&
-        matchesStatus &&
-        matchesType &&
-        matchesCategory
-      );
-    });
   }, [
-    customers,
+    token,
+    pagination.current_page,
     searchQuery,
     statusFilter,
     typeFilter,
     categoryFilter,
+    labels.loadError,
   ]);
 
   const openCreateModal = (): void => {
@@ -353,29 +373,20 @@ export default function CustomersPage() {
 
     try {
       if (formCustomer) {
-        const updated = await updateCustomer(
+        await updateCustomer(
           token,
           formCustomer.id,
           payload
         );
 
-        setCustomers((current) =>
-          current.map((customer) =>
-            customer.id === updated.id
-              ? updated
-              : customer
-          )
-        );
+        await loadCustomers();
       } else {
-        const created = await createCustomer(
+        await createCustomer(
           token,
           payload
         );
 
-        setCustomers((current) => [
-          created,
-          ...current,
-        ]);
+        await loadCustomers(1);
       }
 
       setFormOpen(false);
@@ -394,24 +405,19 @@ export default function CustomersPage() {
       setProcessing(true);
 
       try {
-        const updated =
-          customerAction === "archive"
-            ? await archiveCustomer(
-                token,
-                customerToProcess.id
-              )
-            : await restoreCustomer(
-                token,
-                customerToProcess.id
-              );
+        if (customerAction === "archive") {
+          await archiveCustomer(
+            token,
+            customerToProcess.id
+          );
+        } else {
+          await restoreCustomer(
+            token,
+            customerToProcess.id
+          );
+        }
 
-        setCustomers((current) =>
-          current.map((customer) =>
-            customer.id === updated.id
-              ? updated
-              : customer
-          )
-        );
+        await loadCustomers();
 
         setCustomerToProcess(null);
       } finally {
@@ -460,28 +466,28 @@ export default function CustomersPage() {
         <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <StatisticCard
             title={labels.total}
-            value={statistics.total}
+            value={summary.total}
             icon={<Users size={20} />}
             tone="gold"
           />
 
           <StatisticCard
             title={labels.customers}
-            value={statistics.customers}
+            value={summary.customers}
             icon={<UserCheck size={20} />}
             tone="success"
           />
 
           <StatisticCard
             title={labels.leads}
-            value={statistics.leads}
+            value={summary.leads}
             icon={<UserRoundSearch size={20} />}
             tone="info"
           />
 
           <StatisticCard
             title={labels.archived}
-            value={statistics.archived}
+            value={summary.archived}
             icon={<Archive size={20} />}
             tone="muted"
           />
@@ -510,9 +516,13 @@ export default function CustomersPage() {
                 type="search"
                 value={searchQuery}
                 onChange={(event) =>
-                  setSearchQuery(
-                    event.target.value
-                  )
+                  {
+                    setSearchQuery(event.target.value);
+                    setPagination((current) => ({
+                      ...current,
+                      current_page: 1,
+                    }));
+                  }
                 }
                 placeholder={labels.search}
                 className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] ps-11 pe-4 text-sm text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)] focus:border-[var(--brand-gold)]"
@@ -522,11 +532,17 @@ export default function CustomersPage() {
             <select
               value={statusFilter}
               onChange={(event) =>
-                setStatusFilter(
-                  event.target.value as
-                    | CustomerStatus
-                    | "all"
-                )
+                {
+                  setStatusFilter(
+                    event.target.value as
+                      | CustomerStatus
+                      | "all"
+                  );
+                  setPagination((current) => ({
+                    ...current,
+                    current_page: 1,
+                  }));
+                }
               }
               className="h-11 rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] px-4 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--brand-gold)]"
             >
@@ -549,11 +565,17 @@ export default function CustomersPage() {
             <select
               value={typeFilter}
               onChange={(event) =>
-                setTypeFilter(
-                  event.target.value as
-                    | CustomerType
-                    | "all"
-                )
+                {
+                  setTypeFilter(
+                    event.target.value as
+                      | CustomerType
+                      | "all"
+                  );
+                  setPagination((current) => ({
+                    ...current,
+                    current_page: 1,
+                  }));
+                }
               }
               className="h-11 rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] px-4 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--brand-gold)]"
             >
@@ -576,11 +598,17 @@ export default function CustomersPage() {
             <select
               value={categoryFilter}
               onChange={(event) =>
-                setCategoryFilter(
-                  event.target.value as
-                    | CustomerCategory
-                    | "all"
-                )
+                {
+                  setCategoryFilter(
+                    event.target.value as
+                      | CustomerCategory
+                      | "all"
+                  );
+                  setPagination((current) => ({
+                    ...current,
+                    current_page: 1,
+                  }));
+                }
               }
               className="h-11 rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] px-4 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--brand-gold)]"
             >
@@ -629,8 +657,7 @@ export default function CustomersPage() {
               />
 
               <p className="text-sm font-bold text-[var(--text-primary)]">
-                {labels.results}:{" "}
-                {filteredCustomers.length}
+                {labels.results}: {pagination.total}
               </p>
             </div>
           </div>
@@ -651,7 +678,7 @@ export default function CustomersPage() {
                 </p>
               </div>
             </div>
-          ) : filteredCustomers.length === 0 ? (
+          ) : customers.length === 0 ? (
             <div className="flex min-h-80 items-center justify-center px-6 text-center">
               <div className="max-w-md">
                 <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--brand-gold-soft)] text-[var(--brand-gold-strong)]">
@@ -682,7 +709,7 @@ export default function CustomersPage() {
             </div>
           ) : (
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-              {filteredCustomers.map(
+              {customers.map(
                 (customer) => (
                   <CustomerCard
                     key={customer.id}
@@ -708,6 +735,48 @@ export default function CustomersPage() {
               )}
             </div>
           )}
+
+          {pagination.last_page > 1 ? (
+            <div className="mt-5 flex items-center justify-between gap-3 border-t border-[var(--border)] pt-5">
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={
+                  isLoading || pagination.current_page === 1
+                }
+                onClick={() =>
+                  setPagination((current) => ({
+                    ...current,
+                    current_page: current.current_page - 1,
+                  }))
+                }
+              >
+                {labels.previous}
+              </Button>
+
+              <p className="text-sm font-semibold text-[var(--text-secondary)]">
+                {labels.page} {pagination.current_page} {labels.of}{" "}
+                {pagination.last_page}
+              </p>
+
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={
+                  isLoading ||
+                  pagination.current_page === pagination.last_page
+                }
+                onClick={() =>
+                  setPagination((current) => ({
+                    ...current,
+                    current_page: current.current_page + 1,
+                  }))
+                }
+              >
+                {labels.next}
+              </Button>
+            </div>
+          ) : null}
         </section>
       </div>
 
