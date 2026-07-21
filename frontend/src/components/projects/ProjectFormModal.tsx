@@ -190,6 +190,10 @@ export function ProjectFormModal({
         close: "إغلاق",
         requiredError:
           "اسم المشروع والمدينة مطلوبان.",
+        plannedDateError:
+          "تاريخ النهاية المخطط لا يمكن أن يسبق تاريخ البداية المخطط.",
+        actualDateError:
+          "تاريخ النهاية الفعلي لا يمكن أن يسبق تاريخ البداية الفعلي.",
       }
     : {
         createTitle: "Create new project",
@@ -224,6 +228,10 @@ export function ProjectFormModal({
         close: "Close",
         requiredError:
           "Project name and city are required.",
+        plannedDateError:
+          "Planned end date cannot be before planned start date.",
+        actualDateError:
+          "Actual end date cannot be before actual start date.",
       };
 
   const typeLabels: Record<ProjectType, string> =
@@ -292,6 +300,24 @@ export function ProjectFormModal({
 
     if (!form.name.trim() || !form.city.trim()) {
       setError(labels.requiredError);
+      return;
+    }
+
+    if (
+      form.planned_start_date &&
+      form.planned_end_date &&
+      form.planned_end_date < form.planned_start_date
+    ) {
+      setError(labels.plannedDateError);
+      return;
+    }
+
+    if (
+      form.actual_start_date &&
+      form.actual_end_date &&
+      form.actual_end_date < form.actual_start_date
+    ) {
+      setError(labels.actualDateError);
       return;
     }
 
@@ -658,6 +684,7 @@ export function ProjectFormModal({
                   onDrop={(event) =>
                     event.preventDefault()
                   }
+                  min={form.planned_start_date || undefined}
                   value={form.planned_end_date}
                   onChange={(event) =>
                     updateField(
@@ -712,6 +739,7 @@ export function ProjectFormModal({
                   onDrop={(event) =>
                     event.preventDefault()
                   }
+                  min={form.actual_start_date || undefined}
                   value={form.actual_end_date}
                   onChange={(event) =>
                     updateField(
