@@ -4,6 +4,7 @@ import type {
   ProjectResponse,
   ProjectsResponse,
 } from "@/types/project";
+import { parseApiError } from "@/lib/api-error";
 
 function getApiBaseUrl(): string {
   const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
@@ -15,29 +16,6 @@ function getApiBaseUrl(): string {
   }
 
   return apiBaseUrl;
-}
-
-async function parseError(
-  response: Response
-): Promise<string> {
-  try {
-    const payload = (await response.json()) as {
-      message?: string;
-      errors?: Record<string, string[]>;
-    };
-
-    const firstValidationError = payload.errors
-      ? Object.values(payload.errors)[0]?.[0]
-      : null;
-
-    return (
-      firstValidationError ??
-      payload.message ??
-      "تعذر إكمال العملية."
-    );
-  } catch {
-    return "تعذر الاتصال بالخادم.";
-  }
 }
 
 function getHeaders(token: string): HeadersInit {
@@ -90,7 +68,7 @@ export async function fetchProjects(
   );
 
   if (!response.ok) {
-    throw new Error(await parseError(response));
+    throw await parseApiError(response);
   }
 
   return (await response.json()) as ProjectsResponse;
@@ -110,7 +88,7 @@ export async function createProject(
   );
 
   if (!response.ok) {
-    throw new Error(await parseError(response));
+    throw await parseApiError(response);
   }
 
   const result =
@@ -134,7 +112,7 @@ export async function updateProject(
   );
 
   if (!response.ok) {
-    throw new Error(await parseError(response));
+    throw await parseApiError(response);
   }
 
   const result =
@@ -156,6 +134,6 @@ export async function deleteProject(
   );
 
   if (!response.ok) {
-    throw new Error(await parseError(response));
+    throw await parseApiError(response);
   }
 }

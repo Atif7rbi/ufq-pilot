@@ -13,7 +13,9 @@ import {
 } from "react";
 
 import { Button } from "@/components/ui/Button";
+import { FormErrorBanner } from "@/components/ui/FormErrorBanner";
 import { Input } from "@/components/ui/Input";
+import { useFormValidation } from "@/hooks/useFormValidation";
 import { useTranslation } from "@/hooks/useTranslation";
 import type {
   Project,
@@ -150,8 +152,14 @@ export function ProjectFormModal({
       () => createInitialForm(project)
     );
 
-  const [error, setError] =
-    useState<string | null>(null);
+  const {
+    formRef,
+    fieldErrors,
+    formError,
+    clearValidation,
+    setClientFieldErrors,
+    setValidationError,
+  } = useFormValidation();
 
   if (!isOpen) {
     return null;
@@ -286,6 +294,7 @@ export function ProjectFormModal({
     key: Key,
     value: ProjectFormState[Key]
   ): void => {
+    clearValidation();
     setForm((current) => ({
       ...current,
       [key]: value,
@@ -296,10 +305,17 @@ export function ProjectFormModal({
     event: FormEvent<HTMLFormElement>
   ): Promise<void> => {
     event.preventDefault();
-    setError(null);
+    clearValidation();
 
     if (!form.name.trim() || !form.city.trim()) {
-      setError(labels.requiredError);
+      setClientFieldErrors({
+        ...(!form.name.trim()
+          ? { name: [labels.requiredError] }
+          : {}),
+        ...(!form.city.trim()
+          ? { city: [labels.requiredError] }
+          : {}),
+      });
       return;
     }
 
@@ -308,7 +324,9 @@ export function ProjectFormModal({
       form.planned_end_date &&
       form.planned_end_date < form.planned_start_date
     ) {
-      setError(labels.plannedDateError);
+      setClientFieldErrors({
+        planned_end_date: [labels.plannedDateError],
+      });
       return;
     }
 
@@ -317,7 +335,9 @@ export function ProjectFormModal({
       form.actual_end_date &&
       form.actual_end_date < form.actual_start_date
     ) {
-      setError(labels.actualDateError);
+      setClientFieldErrors({
+        actual_end_date: [labels.actualDateError],
+      });
       return;
     }
 
@@ -354,12 +374,11 @@ export function ProjectFormModal({
     try {
       await onSubmit(payload);
     } catch (caughtError) {
-      setError(
-        caughtError instanceof Error
-          ? caughtError.message
-          : isArabic
-            ? "تعذر حفظ المشروع."
-            : "Unable to save project."
+      setValidationError(
+        caughtError,
+        isArabic
+          ? "تعذر حفظ المشروع."
+          : "Unable to save project."
       );
     }
   };
@@ -404,10 +423,12 @@ export function ProjectFormModal({
         </header>
 
         <form
+          ref={formRef}
           onSubmit={handleSubmit}
           className="min-h-0 flex-1 overflow-y-auto"
         >
           <div className="space-y-7 px-5 py-6 sm:px-7">
+            <FormErrorBanner message={formError} />
             <section className="grid gap-5 md:grid-cols-2">
               <Input
                 label={
@@ -438,6 +459,7 @@ export function ProjectFormModal({
                 placeholder={labels.namePlaceholder}
                 leading={<Building2 size={17} />}
                 required
+                error={fieldErrors.name?.[0]}
               />
 
               <SelectField
@@ -453,6 +475,8 @@ export function ProjectFormModal({
                   value: type,
                   label: typeLabels[type],
                 }))}
+                name="project_type"
+                error={fieldErrors.project_type?.[0]}
               />
 
               <SelectField
@@ -470,6 +494,8 @@ export function ProjectFormModal({
                     label: statusLabels[status],
                   })
                 )}
+                name="status"
+                error={fieldErrors.status?.[0]}
               />
             </section>
 
@@ -483,6 +509,7 @@ export function ProjectFormModal({
 
               <textarea
                 id="project-description"
+                name="description"
                 rows={4}
                 value={form.description}
                 onChange={(event) =>
@@ -493,6 +520,11 @@ export function ProjectFormModal({
                 }
                 className="w-full resize-y rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)] focus:border-[var(--brand-gold)] focus:ring-2 focus:ring-[var(--brand-gold-soft)]"
               />
+              {fieldErrors.description?.[0] ? (
+                <p className="mt-2 text-sm font-medium text-[var(--danger)]">
+                  {fieldErrors.description[0]}
+                </p>
+              ) : null}
             </section>
 
             <section>
@@ -520,6 +552,7 @@ export function ProjectFormModal({
                     )
                   }
                   required
+                  error={fieldErrors.city?.[0]}
                 />
 
                 <Input
@@ -532,6 +565,7 @@ export function ProjectFormModal({
                       event.target.value
                     )
                   }
+                  error={fieldErrors.district?.[0]}
                 />
 
               </div>
@@ -547,6 +581,7 @@ export function ProjectFormModal({
                       event.target.value
                     )
                   }
+                  error={fieldErrors.address_line?.[0]}
                 />
               </div>
             </section>
@@ -568,6 +603,8 @@ export function ProjectFormModal({
                     label: `${manager.name} — ${manager.email}`,
                   })),
                 ]}
+                name="project_manager_id"
+                error={fieldErrors.project_manager_id?.[0]}
               />
             </section>
 
@@ -620,6 +657,7 @@ export function ProjectFormModal({
                       );
                     }}
                     placeholder="1,900,000"
+                    error={fieldErrors.estimated_budget?.[0]}
                   />
                 </div>
               </div>
@@ -654,6 +692,7 @@ export function ProjectFormModal({
                   onPaste={(event) =>
                     event.preventDefault()
                   }
+                  error={fieldErrors.planned_start_date?.[0]}
                   onDrop={(event) =>
                     event.preventDefault()
                   }
@@ -685,6 +724,7 @@ export function ProjectFormModal({
                     event.preventDefault()
                   }
                   min={form.planned_start_date || undefined}
+                  error={fieldErrors.planned_end_date?.[0]}
                   value={form.planned_end_date}
                   onChange={(event) =>
                     updateField(
@@ -713,6 +753,7 @@ export function ProjectFormModal({
                     event.preventDefault()
                   }
                   value={form.actual_start_date}
+                  error={fieldErrors.actual_start_date?.[0]}
                   onChange={(event) =>
                     updateField(
                       "actual_start_date",
@@ -741,6 +782,7 @@ export function ProjectFormModal({
                   }
                   min={form.actual_start_date || undefined}
                   value={form.actual_end_date}
+                  error={fieldErrors.actual_end_date?.[0]}
                   onChange={(event) =>
                     updateField(
                       "actual_end_date",
@@ -751,11 +793,6 @@ export function ProjectFormModal({
               </div>
             </section>
 
-            {error ? (
-              <div className="rounded-xl border border-[var(--danger)]/25 bg-[var(--danger-soft)] px-4 py-3 text-sm font-semibold text-[var(--danger)]">
-                {error}
-              </div>
-            ) : null}
           </div>
 
           <footer className="sticky bottom-0 flex justify-end gap-3 border-t border-[var(--border)] bg-[var(--surface)] px-5 py-4 sm:px-7">
@@ -789,7 +826,9 @@ export function ProjectFormModal({
 
 type SelectFieldProps = {
   label: string;
+  name: string;
   value: string;
+  error?: string;
   options: Array<{
     value: string;
     label: string;
@@ -799,7 +838,9 @@ type SelectFieldProps = {
 
 function SelectField({
   label,
+  name,
   value,
+  error,
   options,
   onChange,
 }: SelectFieldProps) {
@@ -810,6 +851,8 @@ function SelectField({
       </label>
 
       <select
+        name={name}
+        aria-invalid={error ? true : undefined}
         value={value}
         onChange={(event) =>
           onChange(event.target.value)
@@ -825,6 +868,11 @@ function SelectField({
           </option>
         ))}
       </select>
+      {error ? (
+        <p className="mt-2 text-sm font-medium text-[var(--danger)]">
+          {error}
+        </p>
+      ) : null}
     </div>
   );
 }

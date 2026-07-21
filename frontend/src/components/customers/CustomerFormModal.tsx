@@ -15,7 +15,9 @@ import {
 } from "react";
 
 import { Button } from "@/components/ui/Button";
+import { FormErrorBanner } from "@/components/ui/FormErrorBanner";
 import { Input } from "@/components/ui/Input";
+import { useFormValidation } from "@/hooks/useFormValidation";
 import { useTranslation } from "@/hooks/useTranslation";
 import type {
   Customer,
@@ -123,8 +125,14 @@ export function CustomerFormModal({
       () => createInitialForm(customer)
     );
 
-  const [error, setError] =
-    useState<string | null>(null);
+  const {
+    formRef,
+    fieldErrors,
+    formError,
+    clearValidation,
+    setClientFieldErrors,
+    setValidationError,
+  } = useFormValidation();
 
   if (!isOpen) {
     return null;
@@ -252,6 +260,7 @@ export function CustomerFormModal({
     key: Key,
     value: CustomerFormState[Key]
   ): void => {
+    clearValidation();
     setForm((current) => ({
       ...current,
       [key]: value,
@@ -262,10 +271,17 @@ export function CustomerFormModal({
     event: FormEvent<HTMLFormElement>
   ): Promise<void> => {
     event.preventDefault();
-    setError(null);
+    clearValidation();
 
     if (!form.name.trim() || !form.phone.trim()) {
-      setError(labels.requiredError);
+      setClientFieldErrors({
+        ...(!form.name.trim()
+          ? { name: [labels.requiredError] }
+          : {}),
+        ...(!form.phone.trim()
+          ? { phone: [labels.requiredError] }
+          : {}),
+      });
       return;
     }
 
@@ -293,12 +309,11 @@ export function CustomerFormModal({
     try {
       await onSubmit(payload);
     } catch (caughtError) {
-      setError(
-        caughtError instanceof Error
-          ? caughtError.message
-          : isArabic
-            ? "تعذر حفظ بيانات العميل."
-            : "Unable to save customer."
+      setValidationError(
+        caughtError,
+        isArabic
+          ? "تعذر حفظ بيانات العميل."
+          : "Unable to save customer."
       );
     }
   };
@@ -347,10 +362,12 @@ export function CustomerFormModal({
         </header>
 
         <form
+          ref={formRef}
           onSubmit={handleSubmit}
           className="min-h-0 flex-1 overflow-y-auto"
         >
           <div className="space-y-7 px-5 py-6 sm:px-7">
+            <FormErrorBanner message={formError} />
             <section>
               <SectionTitle
                 icon={<UserRound size={17} />}
@@ -373,6 +390,8 @@ export function CustomerFormModal({
                       label: typeLabels[type],
                     })
                   )}
+                  name="type"
+                  error={fieldErrors.type?.[0]}
                 />
 
                 <SelectField
@@ -391,6 +410,8 @@ export function CustomerFormModal({
                         categoryLabels[category],
                     })
                   )}
+                  name="category"
+                  error={fieldErrors.category?.[0]}
                 />
 
                 <SelectField
@@ -408,6 +429,8 @@ export function CustomerFormModal({
                       label: statusLabels[status],
                     })
                   )}
+                  name="status"
+                  error={fieldErrors.status?.[0]}
                 />
 
                 <Input
@@ -423,6 +446,7 @@ export function CustomerFormModal({
                   placeholder={labels.namePlaceholder}
                   leading={<UserRound size={17} />}
                   required
+                  error={fieldErrors.name?.[0]}
                 />
 
                 {form.type === "individual" ? (
@@ -440,6 +464,7 @@ export function CustomerFormModal({
                     }
                     inputMode="numeric"
                     leading={<FileText size={17} />}
+                    error={fieldErrors.national_id?.[0]}
                   />
                 ) : (
                   <Input
@@ -460,6 +485,10 @@ export function CustomerFormModal({
                     }
                     inputMode="numeric"
                     leading={<FileText size={17} />}
+                    error={
+                      fieldErrors
+                        .commercial_registration_number?.[0]
+                    }
                   />
                 )}
               </div>
@@ -488,6 +517,7 @@ export function CustomerFormModal({
                   inputMode="tel"
                   leading={<Phone size={17} />}
                   required
+                  error={fieldErrors.phone?.[0]}
                 />
 
                 <Input
@@ -503,6 +533,7 @@ export function CustomerFormModal({
                   }
                   placeholder={labels.emailPlaceholder}
                   leading={<Mail size={17} />}
+                  error={fieldErrors.email?.[0]}
                 />
 
                 <Input
@@ -516,6 +547,7 @@ export function CustomerFormModal({
                     )
                   }
                   leading={<MapPin size={17} />}
+                  error={fieldErrors.city?.[0]}
                 />
 
                 <Input
@@ -529,6 +561,7 @@ export function CustomerFormModal({
                     )
                   }
                   leading={<MapPin size={17} />}
+                  error={fieldErrors.address?.[0]}
                 />
               </div>
             </section>
@@ -550,6 +583,7 @@ export function CustomerFormModal({
 
               <textarea
                 id="customer-notes"
+                name="notes"
                 rows={5}
                 value={form.notes}
                 onChange={(event) =>
@@ -561,13 +595,13 @@ export function CustomerFormModal({
                 placeholder={labels.notesPlaceholder}
                 className="w-full resize-y rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)] focus:border-[var(--brand-gold)] focus:ring-2 focus:ring-[var(--brand-gold-soft)]"
               />
+              {fieldErrors.notes?.[0] ? (
+                <p className="mt-2 text-sm font-medium text-[var(--danger)]">
+                  {fieldErrors.notes[0]}
+                </p>
+              ) : null}
             </section>
 
-            {error ? (
-              <div className="rounded-xl border border-[var(--danger)]/25 bg-[var(--danger-soft)] px-4 py-3 text-sm font-semibold text-[var(--danger)]">
-                {error}
-              </div>
-            ) : null}
           </div>
 
           <footer className="sticky bottom-0 flex justify-end gap-3 border-t border-[var(--border)] bg-[var(--surface)] px-5 py-4 sm:px-7">
@@ -623,7 +657,9 @@ function SectionTitle({
 
 type SelectFieldProps = {
   label: string;
+  name: string;
   value: string;
+  error?: string;
   options: Array<{
     value: string;
     label: string;
@@ -633,7 +669,9 @@ type SelectFieldProps = {
 
 function SelectField({
   label,
+  name,
   value,
+  error,
   options,
   onChange,
 }: SelectFieldProps) {
@@ -644,6 +682,8 @@ function SelectField({
       </label>
 
       <select
+        name={name}
+        aria-invalid={error ? true : undefined}
         value={value}
         onChange={(event) =>
           onChange(event.target.value)
@@ -659,6 +699,11 @@ function SelectField({
           </option>
         ))}
       </select>
+      {error ? (
+        <p className="mt-2 text-sm font-medium text-[var(--danger)]">
+          {error}
+        </p>
+      ) : null}
     </div>
   );
 }

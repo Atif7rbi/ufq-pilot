@@ -6,6 +6,7 @@ import type {
   CustomerSummary,
   CustomersResponse,
 } from "@/types/customer";
+import { parseApiError } from "@/lib/api-error";
 
 function getApiBaseUrl(): string {
   const apiBaseUrl =
@@ -18,29 +19,6 @@ function getApiBaseUrl(): string {
   }
 
   return apiBaseUrl;
-}
-
-async function parseError(
-  response: Response
-): Promise<string> {
-  try {
-    const payload = (await response.json()) as {
-      message?: string;
-      errors?: Record<string, string[]>;
-    };
-
-    const firstValidationError = payload.errors
-      ? Object.values(payload.errors)[0]?.[0]
-      : null;
-
-    return (
-      firstValidationError ??
-      payload.message ??
-      "تعذر إكمال العملية."
-    );
-  } catch {
-    return "تعذر الاتصال بالخادم.";
-  }
 }
 
 function getHeaders(
@@ -87,9 +65,7 @@ export async function fetchCustomers(
   );
 
   if (!response.ok) {
-    throw new Error(
-      await parseError(response)
-    );
+    throw await parseApiError(response);
   }
 
   const result = (await response.json()) as {
@@ -118,9 +94,7 @@ export async function createCustomer(
   );
 
   if (!response.ok) {
-    throw new Error(
-      await parseError(response)
-    );
+    throw await parseApiError(response);
   }
 
   const result =
@@ -144,9 +118,7 @@ export async function updateCustomer(
   );
 
   if (!response.ok) {
-    throw new Error(
-      await parseError(response)
-    );
+    throw await parseApiError(response);
   }
 
   const result =
@@ -168,9 +140,7 @@ export async function archiveCustomer(
   );
 
   if (!response.ok) {
-    throw new Error(
-      await parseError(response)
-    );
+    throw await parseApiError(response);
   }
 
   const result =
@@ -192,9 +162,7 @@ export async function restoreCustomer(
   );
 
   if (!response.ok) {
-    throw new Error(
-      await parseError(response)
-    );
+    throw await parseApiError(response);
   }
 
   const result =
