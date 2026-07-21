@@ -41,6 +41,7 @@ export function Input({
 
         <input
           id={inputId}
+          aria-invalid={error ? true : undefined}
           className={[
             "motion-ui h-12 w-full",
             "rounded-[var(--radius-md)]",
