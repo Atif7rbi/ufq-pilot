@@ -49,6 +49,11 @@ Route::middleware([
     )->name('units.store');
 
     Route::get(
+        '/units',
+        [UnitController::class, 'index']
+    )->name('units.index');
+
+    Route::get(
         '/units/{unit}',
         [UnitController::class, 'show']
     )->name('units.show');
@@ -57,6 +62,16 @@ Route::middleware([
         '/units/{unit}',
         [UnitController::class, 'update']
     )->name('units.update');
+
+    Route::post(
+        '/units/{unit}/archive',
+        [UnitController::class, 'archive']
+    )->name('units.archive');
+
+    Route::post(
+        '/units/{unit}/restore',
+        [UnitController::class, 'restore']
+    )->name('units.restore');
 
     Route::apiResource(
         'users',

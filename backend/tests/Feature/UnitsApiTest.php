@@ -20,10 +20,19 @@ final class UnitsApiTest extends ApiTestCase
         $this->postJson('/api/units', [])
             ->assertUnauthorized();
 
+        $this->getJson('/api/units')
+            ->assertUnauthorized();
+
         $this->getJson("/api/units/{$unitId}")
             ->assertUnauthorized();
 
         $this->putJson("/api/units/{$unitId}", [])
+            ->assertUnauthorized();
+
+        $this->postJson("/api/units/{$unitId}/archive")
+            ->assertUnauthorized();
+
+        $this->postJson("/api/units/{$unitId}/restore")
             ->assertUnauthorized();
     }
 
@@ -173,6 +182,126 @@ final class UnitsApiTest extends ApiTestCase
             'floor' => 4,
             'updated_by' => $user->id,
         ]);
+    }
+
+    public function test_units_can_be_listed_filtered_and_summarized(): void
+    {
+        $user = $this->createActiveUser();
+
+        Sanctum::actingAs($user);
+
+        $firstProjectId = $this->createProject();
+        $secondProjectId = $this->createProject();
+
+        foreach ([
+            [
+                'project_id' => $firstProjectId,
+                'unit_number' => 'A-101',
+                'unit_type' => 'apartment',
+                'status' => 'available',
+            ],
+            [
+                'project_id' => $firstProjectId,
+                'unit_number' => 'A-102',
+                'unit_type' => 'apartment',
+                'status' => 'sold',
+            ],
+            [
+                'project_id' => $secondProjectId,
+                'unit_number' => 'V-201',
+                'unit_type' => 'villa',
+                'status' => 'available',
+            ],
+        ] as $unit) {
+            $this->postJson('/api/units', [
+                ...$unit,
+                'selling_price' => 500000,
+            ])->assertCreated();
+        }
+
+        $this->getJson(
+            "/api/units?search=A-10&project_id={$firstProjectId}&unit_type=apartment&status=available&per_page=1"
+        )
+            ->assertOk()
+            ->assertJsonPath('data.units.total', 1)
+            ->assertJsonPath('data.units.per_page', 1)
+            ->assertJsonPath('data.units.data.0.unit_number', 'A-101')
+            ->assertJsonPath(
+                'data.units.data.0.project.id',
+                $firstProjectId
+            )
+            ->assertJsonPath('data.summary.total', 3)
+            ->assertJsonPath('data.summary.available', 2)
+            ->assertJsonPath('data.summary.sold', 1);
+    }
+
+    public function test_unit_can_be_archived_and_restored_without_changing_business_status(): void
+    {
+        $user = $this->createActiveUser();
+
+        Sanctum::actingAs($user);
+
+        $projectId = $this->createProject();
+        $unitId = $this->postJson('/api/units', [
+            'project_id' => $projectId,
+            'unit_number' => 'S-401',
+            'unit_type' => 'shop',
+            'status' => 'sold',
+            'selling_price' => 800000,
+        ])
+            ->assertCreated()
+            ->json('data.unit.id');
+
+        $this->postJson("/api/units/{$unitId}/archive")
+            ->assertOk()
+            ->assertJsonPath('message', 'تمت أرشفة الوحدة بنجاح.')
+            ->assertJsonPath('data.unit.status', 'sold')
+            ->assertJsonPath('data.unit.archived_by', $user->id);
+
+        $this->assertDatabaseHas('units', [
+            'id' => $unitId,
+            'status' => 'sold',
+            'archived_by' => $user->id,
+        ]);
+
+        $this->getJson('/api/units?archived=true')
+            ->assertOk()
+            ->assertJsonPath('data.units.total', 1)
+            ->assertJsonPath('data.units.data.0.id', $unitId);
+
+        $this->getJson('/api/units?archived=false')
+            ->assertOk()
+            ->assertJsonPath('data.units.total', 0);
+
+        $this->putJson("/api/units/{$unitId}", [
+            'selling_price' => 850000,
+        ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['unit']);
+
+        $this->postJson('/api/units', [
+            'project_id' => $projectId,
+            'unit_number' => 'S-401',
+            'unit_type' => 'shop',
+            'selling_price' => 800000,
+        ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['unit_number']);
+
+        $this->postJson("/api/units/{$unitId}/archive")
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['unit']);
+
+        $this->postJson("/api/units/{$unitId}/restore")
+            ->assertOk()
+            ->assertJsonPath('message', 'تمت استعادة الوحدة بنجاح.')
+            ->assertJsonPath('data.unit.status', 'sold')
+            ->assertJsonPath('data.unit.archived_at', null)
+            ->assertJsonPath('data.unit.restored_by', $user->id);
+
+        $this->postJson("/api/units/{$unitId}/restore")
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['unit']);
     }
 
     public function test_units_are_scoped_to_the_active_tenant(): void
