@@ -88,13 +88,13 @@ export function DashboardHero() {
   ];
 
   return (
-    <section className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-sm)]">
-      <div className="relative px-5 py-6 sm:px-7">
+    <section className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-md)]">
+      <div className="relative px-6 py-8 sm:px-8">
         <div className="absolute inset-y-0 start-0 hidden w-72 bg-gradient-to-end from-[var(--brand-gold-soft)] to-transparent lg:block" />
 
         <div className="relative flex flex-col justify-between gap-6 xl:flex-row xl:items-center">
           <div>
-            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-1.5 text-[11px] font-bold text-[var(--text-secondary)]">
+            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-2 text-[11px] font-bold text-[var(--text-secondary)]">
               <CalendarPlus size={14} />
 
               <span suppressHydrationWarning>
@@ -135,17 +135,17 @@ export function DashboardHero() {
 
               const classes = [
                 "motion-ui flex min-h-24 flex-col items-center justify-center gap-3",
-                "rounded-2xl border border-[var(--border)]",
+                "rounded-[var(--radius-md)] border border-[var(--border)]",
                 "bg-[var(--surface-soft)] px-4",
                 "text-sm font-bold text-[var(--text-primary)]",
                 action.enabled
-                  ? "hover:-translate-y-1 hover:border-[var(--brand-gold)] hover:bg-[var(--brand-gold-soft)] hover:shadow-[var(--shadow-sm)]"
+                  ? "hover:-translate-y-1 hover:border-[var(--brand-primary)] hover:bg-[var(--brand-primary-soft)] hover:shadow-[var(--shadow-md)]"
                   : "cursor-default opacity-65",
               ].join(" ");
 
               const content = (
                 <>
-                  <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--surface)] text-[var(--brand-gold-strong)] shadow-[var(--shadow-sm)]">
+                  <span className="flex h-12 w-12 items-center justify-center rounded-[var(--radius-md)] bg-[var(--surface)] text-[var(--brand-gold-strong)] shadow-[var(--shadow-sm)]">
                     <Icon size={19} strokeWidth={1.9} />
                   </span>
 

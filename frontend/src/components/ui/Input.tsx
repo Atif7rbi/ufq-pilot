@@ -6,17 +6,17 @@ import type {
 type InputProps = InputHTMLAttributes<HTMLInputElement> & {
   label: string;
   error?: string | null;
+  hint?: string | null;
   leading?: ReactNode;
   trailing?: ReactNode;
-  hint?: string | null;
 };
 
 export function Input({
   label,
   error,
+  hint,
   leading,
   trailing,
-  hint,
   className = "",
   id,
   ...props
@@ -24,58 +24,65 @@ export function Input({
   const inputId = id ?? props.name;
 
   return (
-    <div>
+    <div className="space-y-2">
       <label
         htmlFor={inputId}
-        className="mb-2 block text-sm font-semibold text-[var(--text-secondary)]"
+        className="block text-sm font-semibold text-[var(--text-secondary)]"
       >
         {label}
       </label>
 
       <div className="relative">
-        {leading ? (
+        {leading && (
           <div className="pointer-events-none absolute inset-y-0 start-0 flex items-center ps-4 text-[var(--text-muted)]">
             {leading}
           </div>
-        ) : null}
+        )}
 
         <input
           id={inputId}
           className={[
-            "h-12 w-full rounded-xl border px-4 text-sm outline-none transition",
-            "border-[var(--border)] bg-[var(--surface-soft)] text-[var(--text-primary)]",
+            "motion-ui h-12 w-full",
+            "rounded-[var(--radius-md)]",
+            "border border-[var(--border)]",
+            "bg-[var(--surface)]",
+            "px-4 text-sm",
+            "text-[var(--text-primary)]",
             "placeholder:text-[var(--text-muted)]",
-            "focus:border-[var(--brand-gold)] focus:ring-2 focus:ring-[var(--brand-gold-soft)]",
-            "disabled:cursor-not-allowed disabled:bg-[var(--surface-muted)] disabled:text-[var(--text-muted)]",
-            "read-only:cursor-default",
+            "shadow-[var(--shadow-sm)]",
+            "outline-none",
+            "focus:border-[var(--brand-primary)]",
+            "focus:ring-4 focus:ring-[var(--focus-ring)]",
+            "disabled:bg-[var(--surface-muted)]",
+            "disabled:text-[var(--text-muted)]",
             error
-              ? "border-[var(--danger)]"
+              ? "border-[var(--danger)] focus:border-[var(--danger)]"
               : "",
             leading ? "ps-11" : "",
-            trailing ? "pe-14" : "",
+            trailing ? "pe-12" : "",
             className,
           ].join(" ")}
           {...props}
         />
 
-        {trailing ? (
-          <div className="pointer-events-none absolute inset-y-0 end-0 flex items-center pe-4 text-xs font-bold text-[var(--text-secondary)]">
+        {trailing && (
+          <div className="absolute inset-y-0 end-0 flex items-center pe-4 text-[var(--text-secondary)]">
             {trailing}
           </div>
-        ) : null}
+        )}
       </div>
 
-      {hint ? (
-        <p className="mt-2 text-xs font-medium leading-5 text-[var(--text-secondary)]">
+      {hint && !error && (
+        <p className="text-xs text-[var(--text-secondary)]">
           {hint}
         </p>
-      ) : null}
+      )}
 
-      {error ? (
-        <p className="mt-2 text-xs font-semibold text-[var(--danger)]">
+      {error && (
+        <p className="text-xs font-semibold text-[var(--danger)]">
           {error}
         </p>
-      ) : null}
+      )}
     </div>
   );
 }

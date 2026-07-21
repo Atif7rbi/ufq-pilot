@@ -3,101 +3,137 @@
 :root {
   color-scheme: light;
 
-  --brand-primary: #0f172a;
-  --brand-secondary: #475569;
+  --brand-primary: #6847d9;
+  --brand-primary-hover: #5638c4;
+  --brand-primary-soft: #eee9ff;
+  --brand-secondary: #776f8d;
+
   --brand-gold: #c99428;
-  --brand-gold-strong: #ad7615;
-  --brand-gold-soft: #fff7e8;
+  --brand-gold-strong: #a96f0e;
+  --brand-gold-soft: #fff4d9;
 
-  --app-bg: #f7f9fc;
+  --app-bg: #f6f4fb;
   --surface: #ffffff;
-  --surface-soft: #fbfcfe;
-  --surface-muted: #f3f6fa;
+  --surface-soft: #fbfaff;
+  --surface-muted: #f1eef8;
   --surface-raised: #ffffff;
+  --surface-overlay: rgba(255, 255, 255, 0.9);
 
-  --text-primary: #111c35;
-  --text-secondary: #66728b;
-  --text-muted: #94a0b6;
+  --text-primary: #1b1630;
+  --text-secondary: #6f6880;
+  --text-muted: #9b94ab;
+  --text-inverse: #ffffff;
 
-  --border: #e5eaf1;
-  --border-strong: #d9e0e9;
+  --border: #e7e1f0;
+  --border-strong: #d8cfe7;
 
-  --sidebar-bg: #ffffff;
-  --sidebar-text: #59657b;
-  --sidebar-heading: #99a3b5;
-  --sidebar-active-bg: #fff7e8;
-  --sidebar-active-text: #a76e0e;
+  --sidebar-bg: #f8f6ff;
+  --sidebar-border: #e8e3f5;
+  --sidebar-text: #625a77;
+  --sidebar-heading: #948ba9;
+  --sidebar-hover-bg: #efebf8;
+  --sidebar-active-bg: #fff1d4;
+  --sidebar-active-text: #96620a;
 
-  --success: #20a76c;
-  --success-soft: #e9f8f1;
-  --danger: #dc4353;
-  --danger-soft: #fff0f2;
-  --warning: #d79519;
-  --warning-soft: #fff7e8;
-  --info: #258ee8;
-  --info-soft: #eaf5ff;
-  --violet: #8c5cea;
-  --violet-soft: #f2edff;
+  --success: #169663;
+  --success-soft: #e7f8f0;
+
+  --danger: #d9465f;
+  --danger-soft: #fff0f3;
+
+  --warning: #d28b13;
+  --warning-soft: #fff6df;
+
+  --info: #2d83da;
+  --info-soft: #eaf4ff;
+
+  --violet: #7958df;
+  --violet-soft: #f0ebff;
+
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+  --radius-pill: 999px;
 
   --shadow-sm:
-    0 1px 2px rgba(15, 23, 42, 0.03),
-    0 4px 14px rgba(15, 23, 42, 0.035);
+    0 1px 2px rgba(30, 20, 55, 0.03),
+    0 5px 16px rgba(30, 20, 55, 0.04);
 
   --shadow-md:
-    0 12px 35px rgba(15, 23, 42, 0.065);
+    0 14px 38px rgba(30, 20, 55, 0.08);
 
   --shadow-lg:
-    0 24px 70px rgba(15, 23, 42, 0.1);
+    0 28px 80px rgba(30, 20, 55, 0.13);
+
+  --focus-ring: rgba(104, 71, 217, 0.22);
+
+  --transition-fast: 140ms ease;
+  --transition-base: 180ms ease;
+  --transition-slow: 260ms ease;
 }
 
 html[data-theme="dark"] {
   color-scheme: dark;
 
-  --brand-primary: #f7f8fb;
-  --brand-secondary: #b4bfd1;
-  --brand-gold: #e0ad3e;
-  --brand-gold-strong: #efbd4d;
-  --brand-gold-soft: rgba(224, 173, 62, 0.13);
+  --brand-primary: #9f82ff;
+  --brand-primary-hover: #b49cff;
+  --brand-primary-soft: rgba(159, 130, 255, 0.14);
+  --brand-secondary: #bdb5ce;
 
-  --app-bg: #08111f;
-  --surface: #0e1929;
-  --surface-soft: #101d2e;
-  --surface-muted: #142235;
-  --surface-raised: #122033;
+  --brand-gold: #e0b04c;
+  --brand-gold-strong: #f0c66b;
+  --brand-gold-soft: rgba(224, 176, 76, 0.13);
 
-  --text-primary: #f4f7fb;
-  --text-secondary: #aab5c7;
-  --text-muted: #738096;
+  --app-bg: #120f1d;
+  --surface: #1d1830;
+  --surface-soft: #221c37;
+  --surface-muted: #2a2342;
+  --surface-raised: #241e3a;
+  --surface-overlay: rgba(29, 24, 48, 0.92);
 
-  --border: #223147;
-  --border-strong: #2c3b50;
+  --text-primary: #f6f3fb;
+  --text-secondary: #b8b0c8;
+  --text-muted: #817992;
+  --text-inverse: #181322;
 
-  --sidebar-bg: #0b1626;
-  --sidebar-text: #aeb9ca;
-  --sidebar-heading: #637086;
-  --sidebar-active-bg: rgba(224, 173, 62, 0.14);
-  --sidebar-active-text: #f0bd4c;
+  --border: #332b47;
+  --border-strong: #443953;
 
-  --success: #4ad58f;
-  --success-soft: rgba(74, 213, 143, 0.12);
-  --danger: #ff6573;
-  --danger-soft: rgba(255, 101, 115, 0.1);
-  --warning: #f0b53c;
-  --warning-soft: rgba(240, 181, 60, 0.12);
-  --info: #53aaff;
-  --info-soft: rgba(83, 170, 255, 0.12);
-  --violet: #ad83ff;
-  --violet-soft: rgba(173, 131, 255, 0.12);
+  --sidebar-bg: #171326;
+  --sidebar-border: #302845;
+  --sidebar-text: #c4bdd7;
+  --sidebar-heading: #8f86a6;
+  --sidebar-hover-bg: #241d39;
+  --sidebar-active-bg: #30224b;
+  --sidebar-active-text: #e3ba5c;
+
+  --success: #4bd394;
+  --success-soft: rgba(75, 211, 148, 0.12);
+
+  --danger: #ff6b7d;
+  --danger-soft: rgba(255, 107, 125, 0.11);
+
+  --warning: #efb84f;
+  --warning-soft: rgba(239, 184, 79, 0.12);
+
+  --info: #62adf8;
+  --info-soft: rgba(98, 173, 248, 0.12);
+
+  --violet: #b195ff;
+  --violet-soft: rgba(177, 149, 255, 0.13);
 
   --shadow-sm:
-    0 1px 2px rgba(0, 0, 0, 0.16),
-    0 6px 18px rgba(0, 0, 0, 0.12);
+    0 1px 2px rgba(0, 0, 0, 0.18),
+    0 6px 18px rgba(0, 0, 0, 0.14);
 
   --shadow-md:
-    0 18px 45px rgba(0, 0, 0, 0.2);
+    0 18px 48px rgba(0, 0, 0, 0.23);
 
   --shadow-lg:
-    0 28px 85px rgba(0, 0, 0, 0.3);
+    0 32px 90px rgba(0, 0, 0, 0.34);
+
+  --focus-ring: rgba(159, 130, 255, 0.24);
 }
 
 * {
@@ -134,13 +170,26 @@ a {
   -webkit-tap-highlight-color: transparent;
 }
 
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
 a {
   color: inherit;
   text-decoration: none;
 }
 
 ::selection {
-  background: rgba(201, 148, 40, 0.22);
+  background: var(--brand-primary-soft);
+  color: var(--text-primary);
+}
+
+:focus-visible {
+  outline: none;
 }
 
 .app-surface {
@@ -151,6 +200,10 @@ a {
 
 .app-surface-soft {
   background: var(--surface-soft);
+}
+
+.app-surface-muted {
+  background: var(--surface-muted);
 }
 
 .app-text-primary {
@@ -175,6 +228,10 @@ a {
 
 .app-shadow-md {
   box-shadow: var(--shadow-md);
+}
+
+.app-shadow-lg {
+  box-shadow: var(--shadow-lg);
 }
 
 .bg-brand-primary {
@@ -205,15 +262,11 @@ a {
 
 .subtle-scroll {
   scrollbar-width: thin;
-  scrollbar-color:
-    transparent
-    transparent;
+  scrollbar-color: transparent transparent;
 }
 
 .subtle-scroll:hover {
-  scrollbar-color:
-    var(--border-strong)
-    transparent;
+  scrollbar-color: var(--border-strong) transparent;
 }
 
 .subtle-scroll::-webkit-scrollbar {
@@ -226,7 +279,7 @@ a {
 }
 
 .subtle-scroll::-webkit-scrollbar-thumb {
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: transparent;
 }
 
@@ -236,7 +289,7 @@ a {
 
 .dashboard-grid {
   display: grid;
-  gap: 16px;
+  gap: 18px;
 }
 
 @media (min-width: 1280px) {
@@ -245,33 +298,29 @@ a {
   }
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  * {
-    scroll-behavior: smooth;
-  }
-
-  .motion-ui {
-    transition:
-      background-color 180ms ease,
-      border-color 180ms ease,
-      color 180ms ease,
-      transform 180ms ease,
-      box-shadow 180ms ease;
-  }
+.motion-ui {
+  transition:
+    background-color var(--transition-base),
+    border-color var(--transition-base),
+    color var(--transition-base),
+    opacity var(--transition-base),
+    transform var(--transition-base),
+    box-shadow var(--transition-base);
 }
 
-/* Native date controls must remain readable in both themes. */
 input[type="date"] {
   color-scheme: light;
 }
 
-html.dark input[type="date"]::-webkit-calendar-picker-indicator {
-  opacity: 0.85;
-  cursor: pointer;
+html[data-theme="dark"] input[type="date"] {
+  color-scheme: dark;
 }
 
+input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.82;
+}
 
-/* NexusOS Login v1 animations */
 @keyframes nexus-login-card-enter {
   from {
     opacity: 0;
@@ -305,6 +354,15 @@ html.dark input[type="date"]::-webkit-calendar-picker-indicator {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
   .nexus-login-card-enter,
   .nexus-login-hero-enter {
     animation: none;

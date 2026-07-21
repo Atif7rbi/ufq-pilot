@@ -8,9 +8,9 @@ export function ActivityPanel() {
   const { t } = useTranslation();
 
   return (
-    <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[var(--shadow-sm)]">
+    <section className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-6 shadow-[var(--shadow-sm)]">
       <div>
-        <h3 className="text-base font-bold text-[var(--text-primary)]">
+        <h3 className="text-lg font-bold text-[var(--text-primary)]">
           {t("dashboard.recentActivity")}
         </h3>
 
@@ -19,9 +19,9 @@ export function ActivityPanel() {
         </p>
       </div>
 
-      <div className="mt-5 flex min-h-64 items-center justify-center rounded-xl border border-dashed border-[var(--border-strong)] bg-[var(--surface-soft)] px-6 text-center">
+      <div className="mt-8 flex min-h-72 items-center justify-center rounded-[var(--radius-md)] border border-dashed border-[var(--border-strong)] bg-[var(--surface-soft)] px-8 text-center">
         <div className="max-w-xs">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--surface-muted)] text-[var(--text-secondary)]">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-[var(--radius-md)] bg-[var(--surface-muted)] text-[var(--text-secondary)]">
             <History size={24} strokeWidth={1.7} />
           </div>
 
@@ -29,7 +29,7 @@ export function ActivityPanel() {
             {t("dashboard.noActivity")}
           </h4>
 
-          <p className="mt-2 text-xs leading-6 text-[var(--text-secondary)]">
+          <p className="mt-2 text-sm leading-7 text-[var(--text-secondary)]">
             {t("dashboard.noActivityDescription")}
           </p>
         </div>

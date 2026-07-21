@@ -1,6 +1,12 @@
 import type { ReactNode } from "react";
 
-type BadgeVariant = "neutral" | "success" | "warning" | "danger" | "info";
+type BadgeVariant =
+  | "neutral"
+  | "success"
+  | "warning"
+  | "danger"
+  | "info"
+  | "primary";
 
 type BadgeProps = {
   children: ReactNode;
@@ -8,11 +14,23 @@ type BadgeProps = {
 };
 
 const variantClasses: Record<BadgeVariant, string> = {
-  neutral: "bg-slate-100 text-slate-700",
-  success: "bg-emerald-100 text-emerald-700",
-  warning: "bg-amber-100 text-amber-700",
-  danger: "bg-red-100 text-red-700",
-  info: "bg-blue-100 text-blue-700",
+  neutral:
+    "border border-[var(--border)] bg-[var(--surface-soft)] text-[var(--text-secondary)]",
+
+  success:
+    "border border-transparent bg-[var(--success-soft)] text-[var(--success)]",
+
+  warning:
+    "border border-transparent bg-[var(--warning-soft)] text-[var(--warning)]",
+
+  danger:
+    "border border-transparent bg-[var(--danger-soft)] text-[var(--danger)]",
+
+  info:
+    "border border-transparent bg-[var(--info-soft)] text-[var(--info)]",
+
+  primary:
+    "border border-transparent bg-[var(--brand-primary-soft)] text-[var(--brand-primary)]",
 };
 
 export function Badge({
@@ -22,8 +40,11 @@ export function Badge({
   return (
     <span
       className={[
-        "inline-flex items-center rounded-full px-2.5 py-1",
-        "text-xs font-semibold",
+        "inline-flex items-center justify-center",
+        "rounded-[var(--radius-pill)]",
+        "px-3 py-1.5",
+        "text-[11px] font-bold tracking-[0.04em]",
+        "motion-ui",
         variantClasses[variant],
       ].join(" ")}
     >

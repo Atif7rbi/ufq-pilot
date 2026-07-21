@@ -42,9 +42,9 @@ export function AlertsPanel() {
   ];
 
   return (
-    <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[var(--shadow-sm)]">
+    <section className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-6 shadow-[var(--shadow-sm)]">
       <div>
-        <h3 className="text-base font-bold text-[var(--text-primary)]">
+        <h3 className="text-lg font-bold text-[var(--text-primary)]">
           {t("dashboard.alerts")}
         </h3>
 
@@ -60,10 +60,10 @@ export function AlertsPanel() {
           return (
             <div
               key={alert.title}
-              className="flex items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-4"
+              className="motion-ui flex items-center gap-4 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-soft)] p-5 hover:border-[var(--border-strong)] hover:bg-[var(--surface)]"
             >
               <div
-                className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${alert.tone}`}
+                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--radius-md)] ${alert.tone}`}
               >
                 <Icon size={18} />
               </div>
@@ -73,7 +73,7 @@ export function AlertsPanel() {
                   {alert.title}
                 </p>
 
-                <p className="mt-1 text-xs text-[var(--text-muted)]">
+                <p className="mt-1 text-sm text-[var(--text-secondary)]">
                   {alert.description}
                 </p>
               </div>

@@ -36,9 +36,9 @@ export function CollectionSummary() {
   ];
 
   return (
-    <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[var(--shadow-sm)]">
+    <section className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-6 shadow-[var(--shadow-sm)]">
       <div>
-        <h3 className="text-base font-bold text-[var(--text-primary)]">
+        <h3 className="text-lg font-bold text-[var(--text-primary)]">
           {t("dashboard.collectionsSummary")}
         </h3>
 
@@ -54,10 +54,10 @@ export function CollectionSummary() {
           return (
             <div
               key={item.label}
-              className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-4"
+              className="motion-ui rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-soft)] p-5 hover:border-[var(--border-strong)] hover:bg-[var(--surface)]"
             >
               <div
-                className={`flex h-9 w-9 items-center justify-center rounded-xl ${item.className}`}
+                className={`flex h-11 w-11 items-center justify-center rounded-[var(--radius-md)] ${item.className}`}
               >
                 <Icon size={17} />
               </div>
