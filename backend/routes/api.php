@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\SystemSettingController;
 use App\Modules\Customers\Controllers\CustomerController;
 use App\Modules\Projects\Controllers\ProjectController;
+use App\Modules\Units\Controllers\UnitController;
 use App\Modules\Users\Controllers\TenantUserController;
 use Illuminate\Support\Facades\Route;
 
@@ -41,6 +42,21 @@ Route::middleware([
         'projects',
         ProjectController::class
     );
+
+    Route::post(
+        '/units',
+        [UnitController::class, 'store']
+    )->name('units.store');
+
+    Route::get(
+        '/units/{unit}',
+        [UnitController::class, 'show']
+    )->name('units.show');
+
+    Route::put(
+        '/units/{unit}',
+        [UnitController::class, 'update']
+    )->name('units.update');
 
     Route::apiResource(
         'users',
