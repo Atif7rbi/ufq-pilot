@@ -4,6 +4,7 @@ import {
   AlertTriangle,
   X,
 } from "lucide-react";
+import { useState } from "react";
 
 import { Button } from "@/components/ui/Button";
 import { useTranslation } from "@/hooks/useTranslation";
@@ -23,10 +24,27 @@ export function DeleteProjectDialog({
   onConfirm,
 }: DeleteProjectDialogProps) {
   const { isArabic } = useTranslation();
+  const [error, setError] = useState<string | null>(null);
 
   if (!project) {
     return null;
   }
+
+  const handleConfirm = async (): Promise<void> => {
+    setError(null);
+
+    try {
+      await onConfirm();
+    } catch (caughtError) {
+      setError(
+        caughtError instanceof Error
+          ? caughtError.message
+          : isArabic
+            ? "تعذر حذف المشروع. حاول مرة أخرى."
+            : "Unable to delete the project. Please try again."
+      );
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
@@ -62,6 +80,12 @@ export function DeleteProjectDialog({
             : `Are you sure you want to delete “${project.name}”? It will be removed from the system lists.`}
         </p>
 
+        {error ? (
+          <div className="mt-4 rounded-xl border border-[var(--danger)]/25 bg-[var(--danger-soft)] px-4 py-3 text-sm font-semibold text-[var(--danger)]">
+            {error}
+          </div>
+        ) : null}
+
         <div className="mt-6 flex justify-end gap-3">
           <Button
             type="button"
@@ -76,7 +100,7 @@ export function DeleteProjectDialog({
           <Button
             type="button"
             variant="danger"
-            onClick={() => void onConfirm()}
+            onClick={() => void handleConfirm()}
             disabled={isDeleting}
           >
             {isDeleting
