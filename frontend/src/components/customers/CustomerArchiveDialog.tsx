@@ -5,6 +5,7 @@ import {
   RotateCcw,
   X,
 } from "lucide-react";
+import { useState } from "react";
 
 import { Button } from "@/components/ui/Button";
 import { useTranslation } from "@/hooks/useTranslation";
@@ -26,12 +27,29 @@ export function CustomerArchiveDialog({
   onConfirm,
 }: CustomerArchiveDialogProps) {
   const { isArabic } = useTranslation();
+  const [error, setError] = useState<string | null>(null);
 
   if (!customer) {
     return null;
   }
 
   const isArchive = action === "archive";
+
+  const handleConfirm = async (): Promise<void> => {
+    setError(null);
+
+    try {
+      await onConfirm();
+    } catch (caughtError) {
+      setError(
+        caughtError instanceof Error
+          ? caughtError.message
+          : isArabic
+            ? "تعذر إكمال العملية. حاول مرة أخرى."
+            : "Unable to complete the action. Please try again."
+      );
+    }
+  };
 
   const labels = isArabic
     ? {
@@ -104,6 +122,12 @@ export function CustomerArchiveDialog({
             : labels.restoreDescription}
         </p>
 
+        {error ? (
+          <div className="mt-4 rounded-xl border border-[var(--danger)]/25 bg-[var(--danger-soft)] px-4 py-3 text-sm font-semibold text-[var(--danger)]">
+            {error}
+          </div>
+        ) : null}
+
         <div className="mt-6 flex justify-end gap-3">
           <Button
             type="button"
@@ -118,7 +142,7 @@ export function CustomerArchiveDialog({
           <Button
             type="button"
             variant={isArchive ? "danger" : "primary"}
-            onClick={() => void onConfirm()}
+            onClick={() => void handleConfirm()}
             disabled={isProcessing}
             className={
               isArchive
