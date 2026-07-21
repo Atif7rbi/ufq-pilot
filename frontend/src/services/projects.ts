@@ -50,13 +50,36 @@ function getHeaders(token: string): HeadersInit {
 
 export async function fetchProjects(
   token: string,
-  page = 1,
-  perPage = 100
+  params:
+    | {
+        page?: number;
+        perPage?: number;
+        search?: string;
+        status?: string;
+      }
+    | number = {},
+  legacyPerPage?: number
 ): Promise<ProjectsResponse> {
+  const queryParams =
+    typeof params === "number"
+      ? {
+          page: params,
+          perPage: legacyPerPage,
+        }
+      : params;
+
   const query = new URLSearchParams({
-    page: String(page),
-    per_page: String(perPage),
+    page: String(queryParams.page ?? 1),
+    per_page: String(queryParams.perPage ?? 20),
   });
+
+  if (queryParams.search?.trim()) {
+    query.set('search', queryParams.search.trim());
+  }
+
+  if (queryParams.status) {
+    query.set('status', queryParams.status);
+  }
 
   const response = await fetch(
     `${getApiBaseUrl()}/projects?${query.toString()}`,

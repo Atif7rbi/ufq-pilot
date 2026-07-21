@@ -13,7 +13,6 @@ import {
 import {
   useCallback,
   useEffect,
-  useMemo,
   useState,
 } from "react";
 
@@ -34,6 +33,7 @@ import type {
   Project,
   ProjectFormPayload,
   ProjectManager,
+  ProjectPagination,
   ProjectStatus,
   ProjectType,
 } from "@/types/project";
@@ -45,6 +45,16 @@ export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>(
     []
   );
+
+  const [pagination, setPagination] =
+    useState<Pick<
+      ProjectPagination,
+      "current_page" | "last_page" | "total"
+    >>({
+      current_page: 1,
+      last_page: 1,
+      total: 0,
+    });
 
   const [projectManagers, setProjectManagers] =
     useState<ProjectManager[]>([]);
@@ -102,6 +112,10 @@ export default function ProjectsPage() {
         edit: "تعديل",
         delete: "حذف",
         total: "إجمالي المشاريع",
+        previous: "السابق",
+        next: "التالي",
+        page: "الصفحة",
+        of: "من",
       }
     : {
         title: "Projects",
@@ -128,6 +142,10 @@ export default function ProjectsPage() {
         edit: "Edit",
         delete: "Delete",
         total: "Total projects",
+        previous: "Previous",
+        next: "Next",
+        page: "Page",
+        of: "of",
       };
 
   const typeLabels: Record<ProjectType, string> =
@@ -177,7 +195,7 @@ export default function ProjectsPage() {
       };
 
   const loadProjects =
-    useCallback(async (): Promise<void> => {
+    useCallback(async (page = pagination.current_page): Promise<void> => {
       if (!token) {
         return;
       }
@@ -186,13 +204,22 @@ export default function ProjectsPage() {
       setError(null);
 
       try {
-        const response = await fetchProjects(
-          token,
-          1,
-          100
-        );
+        const response = await fetchProjects(token, {
+          page,
+          perPage: 20,
+          search: searchQuery,
+          status:
+            statusFilter === "all"
+              ? undefined
+              : statusFilter,
+        });
 
         setProjects(response.data.data);
+        setPagination({
+          current_page: response.data.current_page,
+          last_page: response.data.last_page,
+          total: response.data.total,
+        });
       } catch (caughtError) {
         setError(
           caughtError instanceof Error
@@ -202,7 +229,13 @@ export default function ProjectsPage() {
       } finally {
         setIsLoading(false);
       }
-    }, [token, labels.loadError]);
+    }, [
+      token,
+      pagination.current_page,
+      searchQuery,
+      statusFilter,
+      labels.loadError,
+    ]);
 
   useEffect(() => {
     if (!token) {
@@ -211,22 +244,56 @@ export default function ProjectsPage() {
 
     let isCancelled = false;
 
-    Promise.all([
-      fetchProjects(token, 1, 100),
-      fetchTenantUsers(token, {
+    fetchTenantUsers(token, {
         page: 1,
         perPage: 100,
         status: "active",
-      }),
-    ])
-      .then(([projectsResponse, usersResponse]) => {
+      })
+      .then((usersResponse) => {
         if (!isCancelled) {
-          setProjects(projectsResponse.data.data);
           setProjectManagers(
             usersResponse.data.users.data.map(
               (membership) => membership.user
             )
           );
+        }
+      })
+      .catch(() => {
+        if (!isCancelled) {
+          setProjectManagers([]);
+        }
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [token]);
+
+  useEffect(() => {
+    if (!token) {
+      return;
+    }
+
+    let isCancelled = false;
+
+    fetchProjects(token, {
+      page: pagination.current_page,
+      perPage: 20,
+      search: searchQuery,
+      status:
+        statusFilter === "all"
+          ? undefined
+          : statusFilter,
+    })
+      .then((response) => {
+        if (!isCancelled) {
+          setProjects(response.data.data);
+          setPagination((current) => ({
+            ...current,
+            current_page: response.data.current_page,
+            last_page: response.data.last_page,
+            total: response.data.total,
+          }));
           setError(null);
         }
       })
@@ -248,32 +315,13 @@ export default function ProjectsPage() {
     return () => {
       isCancelled = true;
     };
-  }, [token, labels.loadError]);
-
-  const filteredProjects = useMemo(() => {
-    const normalizedSearch =
-      searchQuery.trim().toLocaleLowerCase();
-
-    return projects.filter((project) => {
-      const matchesStatus =
-        statusFilter === "all" ||
-        project.status === statusFilter;
-
-      const matchesSearch =
-        !normalizedSearch ||
-        project.name
-          .toLocaleLowerCase()
-          .includes(normalizedSearch) ||
-        project.project_number
-          .toLocaleLowerCase()
-          .includes(normalizedSearch) ||
-        project.city
-          .toLocaleLowerCase()
-          .includes(normalizedSearch);
-
-      return matchesStatus && matchesSearch;
-    });
-  }, [projects, searchQuery, statusFilter]);
+  }, [
+    token,
+    pagination.current_page,
+    searchQuery,
+    statusFilter,
+    labels.loadError,
+  ]);
 
   const openCreateModal = (): void => {
     setFormProject(null);
@@ -298,29 +346,20 @@ export default function ProjectsPage() {
 
     try {
       if (formProject) {
-        const updated = await updateProject(
+        await updateProject(
           token,
           formProject.id,
           payload
         );
 
-        setProjects((current) =>
-          current.map((project) =>
-            project.id === updated.id
-              ? updated
-              : project
-          )
-        );
+        await loadProjects();
       } else {
-        const created = await createProject(
+        await createProject(
           token,
           payload
         );
 
-        setProjects((current) => [
-          created,
-          ...current,
-        ]);
+        await loadProjects(1);
       }
 
       setFormOpen(false);
@@ -343,11 +382,10 @@ export default function ProjectsPage() {
         projectToDelete.id
       );
 
-      setProjects((current) =>
-        current.filter(
-          (project) =>
-            project.id !== projectToDelete.id
-        )
+      await loadProjects(
+        projects.length === 1 && pagination.current_page > 1
+          ? pagination.current_page - 1
+          : pagination.current_page
       );
 
       setProjectToDelete(null);
@@ -400,7 +438,13 @@ export default function ProjectsPage() {
                 type="search"
                 value={searchQuery}
                 onChange={(event) =>
-                  setSearchQuery(event.target.value)
+                  {
+                    setSearchQuery(event.target.value);
+                    setPagination((current) => ({
+                      ...current,
+                      current_page: 1,
+                    }));
+                  }
                 }
                 placeholder={labels.search}
                 className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] ps-11 pe-4 text-sm text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)] focus:border-[var(--brand-gold)]"
@@ -410,11 +454,17 @@ export default function ProjectsPage() {
             <select
               value={statusFilter}
               onChange={(event) =>
-                setStatusFilter(
-                  event.target.value as
-                    | ProjectStatus
-                    | "all"
-                )
+                {
+                  setStatusFilter(
+                    event.target.value as
+                      | ProjectStatus
+                      | "all"
+                  );
+                  setPagination((current) => ({
+                    ...current,
+                    current_page: 1,
+                  }));
+                }
               }
               className="h-11 rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] px-4 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--brand-gold)]"
             >
@@ -455,7 +505,7 @@ export default function ProjectsPage() {
         <section className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-sm)]">
           <div className="flex items-center justify-between border-b border-[var(--border)] px-5 py-4">
             <p className="text-sm font-bold text-[var(--text-primary)]">
-              {labels.total}: {filteredProjects.length}
+              {labels.total}: {pagination.total}
             </p>
           </div>
 
@@ -474,7 +524,7 @@ export default function ProjectsPage() {
                 </p>
               </div>
             </div>
-          ) : filteredProjects.length === 0 ? (
+          ) : projects.length === 0 ? (
             <div className="flex min-h-80 items-center justify-center px-6 text-center">
               <div className="max-w-md">
                 <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--brand-gold-soft)] text-[var(--brand-gold-strong)]">
@@ -533,7 +583,7 @@ export default function ProjectsPage() {
                   </thead>
 
                   <tbody className="divide-y divide-[var(--border)]">
-                    {filteredProjects.map(
+                    {projects.map(
                       (project) => (
                         <ProjectRow
                           key={project.id}
@@ -565,7 +615,7 @@ export default function ProjectsPage() {
               </div>
 
               <div className="space-y-3 p-4 lg:hidden">
-                {filteredProjects.map((project) => (
+                {projects.map((project) => (
                   <ProjectMobileCard
                     key={project.id}
                     project={project}
@@ -587,6 +637,48 @@ export default function ProjectsPage() {
               </div>
             </>
           )}
+
+          {pagination.last_page > 1 ? (
+            <div className="flex items-center justify-between gap-3 border-t border-[var(--border)] px-5 py-4">
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={
+                  isLoading || pagination.current_page === 1
+                }
+                onClick={() =>
+                  setPagination((current) => ({
+                    ...current,
+                    current_page: current.current_page - 1,
+                  }))
+                }
+              >
+                {labels.previous}
+              </Button>
+
+              <p className="text-sm font-semibold text-[var(--text-secondary)]">
+                {labels.page} {pagination.current_page} {labels.of}{" "}
+                {pagination.last_page}
+              </p>
+
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={
+                  isLoading ||
+                  pagination.current_page === pagination.last_page
+                }
+                onClick={() =>
+                  setPagination((current) => ({
+                    ...current,
+                    current_page: current.current_page + 1,
+                  }))
+                }
+              >
+                {labels.next}
+              </Button>
+            </div>
+          ) : null}
         </section>
       </div>
 

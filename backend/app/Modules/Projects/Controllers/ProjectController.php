@@ -17,13 +17,38 @@ class ProjectController extends Controller
     {
         $projects = Project::query()
             ->with('projectManager:id,name,email')
+            ->when(
+                $request->filled('search'),
+                function ($query) use ($request): void {
+                    $search = trim((string) $request->string('search'));
+
+                    $query->where(function ($query) use ($search): void {
+                        $query
+                            ->where('name', 'ilike', "%{$search}%")
+                            ->orWhere(
+                                'project_number',
+                                'ilike',
+                                "%{$search}%"
+                            )
+                            ->orWhere('city', 'ilike', "%{$search}%");
+                    });
+                }
+            )
+            ->when(
+                $request->filled('status'),
+                fn ($query) => $query->where(
+                    'status',
+                    (string) $request->string('status')
+                )
+            )
             ->latest()
             ->paginate(
                 perPage: min(
                     max((int) $request->integer('per_page', 15), 1),
                     100,
                 )
-            );
+            )
+            ->withQueryString();
 
         return response()->json([
             'data' => $projects,

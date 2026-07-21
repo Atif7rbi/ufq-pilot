@@ -177,6 +177,37 @@ class ProjectsApiTest extends ApiTestCase
         ]);
     }
 
+    public function test_projects_can_be_filtered_by_search_status_and_page(): void
+    {
+        $user = $this->createActiveUser();
+
+        Sanctum::actingAs($user);
+
+        foreach ([
+            ['name' => 'مشروع النخيل الأول', 'status' => 'active'],
+            ['name' => 'مشروع النخيل الثاني', 'status' => 'active'],
+            ['name' => 'مشروع الياسمين', 'status' => 'draft'],
+        ] as $project) {
+            $this->postJson('/api/projects', [
+                ...$project,
+                'project_type' => 'residential',
+                'city' => 'الرياض',
+            ])->assertCreated();
+        }
+
+        $this->getJson('/api/projects?search=النخيل&status=active&per_page=1&page=2')
+            ->assertOk()
+            ->assertJsonPath('data.total', 2)
+            ->assertJsonPath('data.per_page', 1)
+            ->assertJsonPath('data.current_page', 2)
+            ->assertJsonPath('data.last_page', 2)
+            ->assertJsonCount(1, 'data.data')
+            ->assertJsonPath(
+                'data.data.0.name',
+                'مشروع النخيل الأول'
+            );
+    }
+
     public function test_authenticated_user_can_assign_and_remove_project_manager(): void
     {
         $user = $this->createActiveUser();
