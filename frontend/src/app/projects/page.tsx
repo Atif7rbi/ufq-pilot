@@ -29,9 +29,11 @@ import {
   fetchProjects,
   updateProject,
 } from "@/services/projects";
+import { fetchTenantUsers } from "@/services/users";
 import type {
   Project,
   ProjectFormPayload,
+  ProjectManager,
   ProjectStatus,
   ProjectType,
 } from "@/types/project";
@@ -43,6 +45,9 @@ export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>(
     []
   );
+
+  const [projectManagers, setProjectManagers] =
+    useState<ProjectManager[]>([]);
 
   const [isLoading, setIsLoading] =
     useState(true);
@@ -206,10 +211,22 @@ export default function ProjectsPage() {
 
     let isCancelled = false;
 
-    fetchProjects(token, 1, 100)
-      .then((response) => {
+    Promise.all([
+      fetchProjects(token, 1, 100),
+      fetchTenantUsers(token, {
+        page: 1,
+        perPage: 100,
+        status: "active",
+      }),
+    ])
+      .then(([projectsResponse, usersResponse]) => {
         if (!isCancelled) {
-          setProjects(response.data.data);
+          setProjects(projectsResponse.data.data);
+          setProjectManagers(
+            usersResponse.data.users.data.map(
+              (membership) => membership.user
+            )
+          );
           setError(null);
         }
       })
@@ -578,6 +595,7 @@ export default function ProjectsPage() {
           key={formProject?.id ?? "new-project"}
           isOpen
           project={formProject}
+          projectManagers={projectManagers}
           isSubmitting={isSubmitting}
           onClose={() => {
             if (!isSubmitting) {
@@ -640,6 +658,12 @@ function ProjectRow({
         {project.description ? (
           <p className="mt-1 max-w-64 truncate text-[11px] text-[var(--text-muted)]">
             {project.description}
+          </p>
+        ) : null}
+
+        {project.project_manager ? (
+          <p className="mt-1 max-w-64 truncate text-[11px] text-[var(--text-muted)]">
+            {project.project_manager.name}
           </p>
         ) : null}
       </td>
@@ -776,6 +800,15 @@ function ProjectMobileCard({
           </p>
           <p className="mt-1 font-semibold">
             {project.city}
+          </p>
+        </div>
+
+        <div>
+          <p className="text-[var(--text-muted)]">
+            {isArabic ? "مدير المشروع" : "Project manager"}
+          </p>
+          <p className="mt-1 truncate font-semibold">
+            {project.project_manager?.name ?? "—"}
           </p>
         </div>
       </div>

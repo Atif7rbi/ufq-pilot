@@ -37,7 +37,7 @@ class ProjectController extends Controller
         $project = $action->execute(
             $request->validated(),
             $request->user(),
-        );
+        )->load('projectManager:id,name,email');
 
         return response()->json([
             'message' => 'تم إنشاء المشروع بنجاح.',
@@ -67,7 +67,7 @@ class ProjectController extends Controller
             $project,
             $request->validated(),
             $request->user(),
-        );
+        )->load('projectManager:id,name,email');
 
         return response()->json([
             'message' => 'تم تحديث المشروع بنجاح.',

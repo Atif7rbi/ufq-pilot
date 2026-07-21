@@ -18,6 +18,7 @@ import { useTranslation } from "@/hooks/useTranslation";
 import type {
   Project,
   ProjectFormPayload,
+  ProjectManager,
   ProjectStatus,
   ProjectType,
 } from "@/types/project";
@@ -25,6 +26,7 @@ import type {
 type ProjectFormModalProps = {
   isOpen: boolean;
   project: Project | null;
+  projectManagers: ProjectManager[];
   isSubmitting: boolean;
   onClose: () => void;
   onSubmit: (
@@ -45,6 +47,7 @@ type ProjectFormState = {
   planned_end_date: string;
   actual_start_date: string;
   actual_end_date: string;
+  project_manager_id: string;
 };
 
 const emptyForm: ProjectFormState = {
@@ -60,6 +63,7 @@ const emptyForm: ProjectFormState = {
   planned_end_date: "",
   actual_start_date: "",
   actual_end_date: "",
+  project_manager_id: "",
 };
 
 const projectTypes: ProjectType[] = [
@@ -126,12 +130,15 @@ function createInitialForm(
     actual_end_date: dateInputValue(
       project.actual_end_date
     ),
+    project_manager_id:
+      project.project_manager_id?.toString() ?? "",
   };
 }
 
 export function ProjectFormModal({
   isOpen,
   project,
+  projectManagers,
   isSubmitting,
   onClose,
   onSubmit,
@@ -174,6 +181,8 @@ export function ProjectFormModal({
         plannedEnd: "نهاية مخططة",
         actualStart: "بداية فعلية",
         actualEnd: "نهاية فعلية",
+        projectManager: "مدير المشروع",
+        noProjectManager: "بدون مدير محدد",
         cancel: "إلغاء",
         create: "إنشاء المشروع",
         update: "حفظ التعديلات",
@@ -206,6 +215,8 @@ export function ProjectFormModal({
         plannedEnd: "Planned end",
         actualStart: "Actual start",
         actualEnd: "Actual end",
+        projectManager: "Project manager",
+        noProjectManager: "No manager assigned",
         cancel: "Cancel",
         create: "Create project",
         update: "Save changes",
@@ -309,6 +320,9 @@ export function ProjectFormModal({
         form.actual_start_date || null,
       actual_end_date:
         form.actual_end_date || null,
+      project_manager_id: form.project_manager_id
+        ? Number(form.project_manager_id)
+        : null,
     };
 
     try {
@@ -509,6 +523,26 @@ export function ProjectFormModal({
                   }
                 />
               </div>
+            </section>
+
+            <section>
+              <SelectField
+                label={labels.projectManager}
+                value={form.project_manager_id}
+                onChange={(value) =>
+                  updateField("project_manager_id", value)
+                }
+                options={[
+                  {
+                    value: "",
+                    label: labels.noProjectManager,
+                  },
+                  ...projectManagers.map((manager) => ({
+                    value: String(manager.id),
+                    label: `${manager.name} — ${manager.email}`,
+                  })),
+                ]}
+              />
             </section>
 
             <section>

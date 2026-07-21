@@ -177,6 +177,44 @@ class ProjectsApiTest extends ApiTestCase
         ]);
     }
 
+    public function test_authenticated_user_can_assign_and_remove_project_manager(): void
+    {
+        $user = $this->createActiveUser();
+        $manager = $this->createActiveUser();
+
+        Sanctum::actingAs($user);
+
+        $projectId = $this->postJson('/api/projects', [
+            'name' => 'مشروع بمدير',
+            'project_type' => 'residential',
+            'city' => 'الرياض',
+            'project_manager_id' => $manager->id,
+        ])
+            ->assertCreated()
+            ->assertJsonPath(
+                'data.project.project_manager.id',
+                $manager->id
+            )
+            ->assertJsonPath(
+                'data.project.project_manager.name',
+                $manager->name
+            )
+            ->json('data.project.id');
+
+        $this->putJson("/api/projects/{$projectId}", [
+            'project_manager_id' => null,
+        ])
+            ->assertOk()
+            ->assertJsonPath(
+                'data.project.project_manager_id',
+                null
+            )
+            ->assertJsonPath(
+                'data.project.project_manager',
+                null
+            );
+    }
+
     public function test_project_validation_rejects_invalid_business_values(): void
     {
         $user = $this->createActiveUser();
