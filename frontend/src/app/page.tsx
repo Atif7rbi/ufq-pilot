@@ -39,8 +39,15 @@ export default function HomePage() {
     },
     {
       label: t("dashboard.stats.customers"),
-      value: "0",
-      description: t("dashboard.stats.noCustomers"),
+      value: new Intl.NumberFormat("en-US").format(
+        dashboard.totalCustomers
+      ),
+      description:
+        dashboard.totalCustomers > 0
+          ? isArabic
+            ? "إجمالي العملاء المسجلين"
+            : "Total registered customers"
+          : t("dashboard.stats.noCustomers"),
       icon: Users,
       tone: "blue" as const,
       href: "/customers/",

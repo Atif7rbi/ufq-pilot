@@ -3,11 +3,11 @@
 import {
   useCallback,
   useEffect,
-  useMemo,
   useState,
 } from "react";
 
 import { useAuth } from "@/providers/AuthProvider";
+import { fetchCustomers } from "@/services/customers";
 import { fetchProjects } from "@/services/projects";
 import type { Project } from "@/types/project";
 
@@ -15,8 +15,7 @@ type DashboardData = {
   projects: Project[];
   recentProjects: Project[];
   totalProjects: number;
-  activeProjects: number;
-  totalEstimatedBudget: number;
+  totalCustomers: number | null;
   isLoading: boolean;
   error: string | null;
   refresh: () => Promise<void>;
@@ -27,6 +26,8 @@ export function useDashboard(): DashboardData {
 
   const [projects, setProjects] = useState<Project[]>([]);
   const [totalProjects, setTotalProjects] = useState(0);
+  const [totalCustomers, setTotalCustomers] =
+    useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -37,12 +38,20 @@ export function useDashboard(): DashboardData {
 
     setIsLoading(true);
     setError(null);
+    setTotalCustomers(null);
 
     try {
-      const response = await fetchProjects(token, 1, 100);
+      const [projectsResponse, customersResponse] =
+        await Promise.all([
+          fetchProjects(token, { perPage: 5 }),
+          fetchCustomers(token, { per_page: 1 }),
+        ]);
 
-      setProjects(response.data.data);
-      setTotalProjects(response.data.total);
+      setProjects(projectsResponse.data.data);
+      setTotalProjects(projectsResponse.data.total);
+      setTotalCustomers(
+        customersResponse.data.summary.total
+      );
     } catch (caughtError) {
       setError(
         caughtError instanceof Error
@@ -61,14 +70,20 @@ export function useDashboard(): DashboardData {
 
     let isCancelled = false;
 
-    fetchProjects(token, 1, 100)
-      .then((response) => {
+    Promise.all([
+      fetchProjects(token, { perPage: 5 }),
+      fetchCustomers(token, { per_page: 1 }),
+    ])
+      .then(([projectsResponse, customersResponse]) => {
         if (isCancelled) {
           return;
         }
 
-        setProjects(response.data.data);
-        setTotalProjects(response.data.total);
+        setProjects(projectsResponse.data.data);
+        setTotalProjects(projectsResponse.data.total);
+        setTotalCustomers(
+          customersResponse.data.summary.total
+        );
         setError(null);
       })
       .catch((caughtError: unknown) => {
@@ -93,37 +108,11 @@ export function useDashboard(): DashboardData {
     };
   }, [token]);
 
-  const recentProjects = useMemo(
-    () => projects.slice(0, 5),
-    [projects]
-  );
-
-  const activeProjects = useMemo(
-    () =>
-      projects.filter(
-        (project) => project.status === "active"
-      ).length,
-    [projects]
-  );
-
-  const totalEstimatedBudget = useMemo(
-    () =>
-      projects.reduce((total, project) => {
-        const amount = Number(project.estimated_budget ?? 0);
-
-        return Number.isFinite(amount)
-          ? total + amount
-          : total;
-      }, 0),
-    [projects]
-  );
-
   return {
     projects,
-    recentProjects,
+    recentProjects: projects,
     totalProjects,
-    activeProjects,
-    totalEstimatedBudget,
+    totalCustomers,
     isLoading,
     error,
     refresh: loadDashboard,
