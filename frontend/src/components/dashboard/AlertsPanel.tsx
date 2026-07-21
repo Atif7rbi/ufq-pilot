@@ -1,45 +1,13 @@
 "use client";
 
 import {
-  AlertCircle,
-  CalendarClock,
-  CircleCheckBig,
+  BellOff,
 } from "lucide-react";
 
 import { useTranslation } from "@/hooks/useTranslation";
 
 export function AlertsPanel() {
   const { t } = useTranslation();
-
-  const alerts = [
-    {
-      title: t("dashboard.noOverdueInstallments"),
-      description: t(
-        "dashboard.noOverdueInstallmentsDescription"
-      ),
-      icon: CircleCheckBig,
-      tone:
-        "bg-[var(--success-soft)] text-[var(--success)]",
-    },
-    {
-      title: t("dashboard.noDelayedProjects"),
-      description: t(
-        "dashboard.noDelayedProjectsDescription"
-      ),
-      icon: CalendarClock,
-      tone:
-        "bg-[var(--info-soft)] text-[var(--info)]",
-    },
-    {
-      title: t("dashboard.noUrgentAlerts"),
-      description: t(
-        "dashboard.noUrgentAlertsDescription"
-      ),
-      icon: AlertCircle,
-      tone:
-        "bg-[var(--warning-soft)] text-[var(--warning)]",
-    },
-  ];
 
   return (
     <section className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-6 shadow-[var(--shadow-sm)]">
@@ -53,33 +21,20 @@ export function AlertsPanel() {
         </p>
       </div>
 
-      <div className="mt-5 space-y-3">
-        {alerts.map((alert) => {
-          const Icon = alert.icon;
+      <div className="mt-5 flex min-h-48 items-center justify-center rounded-[var(--radius-md)] border border-dashed border-[var(--border-strong)] bg-[var(--surface-soft)] px-8 text-center">
+        <div className="max-w-xs">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-[var(--radius-md)] bg-[var(--surface-muted)] text-[var(--text-secondary)]">
+            <BellOff size={23} strokeWidth={1.7} />
+          </div>
 
-          return (
-            <div
-              key={alert.title}
-              className="motion-ui flex items-center gap-4 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-soft)] p-5 hover:border-[var(--border-strong)] hover:bg-[var(--surface)]"
-            >
-              <div
-                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--radius-md)] ${alert.tone}`}
-              >
-                <Icon size={18} />
-              </div>
+          <h4 className="mt-4 text-sm font-bold text-[var(--text-primary)]">
+            {t("dashboard.noAlerts")}
+          </h4>
 
-              <div>
-                <p className="text-sm font-bold text-[var(--text-primary)]">
-                  {alert.title}
-                </p>
-
-                <p className="mt-1 text-sm text-[var(--text-secondary)]">
-                  {alert.description}
-                </p>
-              </div>
-            </div>
-          );
-        })}
+          <p className="mt-2 text-sm leading-7 text-[var(--text-secondary)]">
+            {t("dashboard.noAlertsDescription")}
+          </p>
+        </div>
       </div>
     </section>
   );

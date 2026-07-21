@@ -93,12 +93,18 @@ export const enUS: TranslationDictionary = {
   "dashboard.collectionsSummary": "Collections summary",
   "dashboard.collectionsDescription":
     "Installment and payment status",
+  "dashboard.noCollections": "No collections",
+  "dashboard.noCollectionsDescription":
+    "Collection data will appear here when available.",
   "dashboard.dueThisMonth": "Due this month",
   "dashboard.collected": "Collected",
   "dashboard.overdue": "Overdue",
   "dashboard.alerts": "Alerts",
   "dashboard.alertsDescription":
     "Items that require attention",
+  "dashboard.noAlerts": "No alerts",
+  "dashboard.noAlertsDescription":
+    "Alerts that need attention will appear here.",
   "dashboard.noOverdueInstallments":
     "No overdue installments",
   "dashboard.noOverdueInstallmentsDescription":

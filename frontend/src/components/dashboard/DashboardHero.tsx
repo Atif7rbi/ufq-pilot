@@ -71,7 +71,7 @@ export function DashboardHero() {
       label: t("dashboard.quickActions.newCustomer"),
       icon: UserPlus,
       href: "/customers/",
-      enabled: false,
+      enabled: true,
     },
     {
       label: t("dashboard.quickActions.newContract"),

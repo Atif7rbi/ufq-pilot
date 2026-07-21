@@ -88,11 +88,17 @@ export const arSA: TranslationDictionary = {
     "سيظهر هنا سجل العمليات التي ينفذها المستخدمين.",
   "dashboard.collectionsSummary": "ملخص التحصيلات",
   "dashboard.collectionsDescription": "حالة الأقساط والمدفوعات",
+  "dashboard.noCollections": "لا توجد تحصيلات",
+  "dashboard.noCollectionsDescription":
+    "ستظهر بيانات التحصيلات هنا عند توفرها.",
   "dashboard.dueThisMonth": "مستحق هذا الشهر",
   "dashboard.collected": "تم تحصيله",
   "dashboard.overdue": "متأخر",
   "dashboard.alerts": "التنبيهات",
   "dashboard.alertsDescription": "الحالات التي تحتاج إلى متابعة",
+  "dashboard.noAlerts": "لا توجد تنبيهات",
+  "dashboard.noAlertsDescription":
+    "ستظهر التنبيهات التي تحتاج إلى متابعة هنا.",
   "dashboard.noOverdueInstallments": "لا توجد أقساط متأخرة",
   "dashboard.noOverdueInstallmentsDescription":
     "جميع الأقساط الحالية بحالة سليمة",

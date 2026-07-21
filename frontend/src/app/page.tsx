@@ -39,11 +39,22 @@ export default function HomePage() {
     },
     {
       label: t("dashboard.stats.customers"),
-      value: new Intl.NumberFormat("en-US").format(
-        dashboard.totalCustomers
-      ),
+      value:
+        dashboard.totalCustomers === null
+          ? "—"
+          : new Intl.NumberFormat("en-US").format(
+              dashboard.totalCustomers
+            ),
       description:
-        dashboard.totalCustomers > 0
+        dashboard.totalCustomers === null
+          ? dashboard.error
+            ? isArabic
+              ? "تعذر تحميل العملاء"
+              : "Unable to load customers"
+            : isArabic
+              ? "جارٍ تحميل العملاء"
+              : "Loading customers"
+          : dashboard.totalCustomers > 0
           ? isArabic
             ? "إجمالي العملاء المسجلين"
             : "Total registered customers"
@@ -54,7 +65,7 @@ export default function HomePage() {
     },
     {
       label: t("dashboard.stats.units"),
-      value: "0",
+      value: "—",
       description: t("dashboard.stats.noUnits"),
       icon: Building2,
       tone: "green" as const,
@@ -62,7 +73,7 @@ export default function HomePage() {
     },
     {
       label: t("dashboard.stats.contracts"),
-      value: "0",
+      value: "—",
       description: t("dashboard.stats.noContracts"),
       icon: FileSignature,
       tone: "violet" as const,
