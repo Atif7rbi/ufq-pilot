@@ -16,10 +16,17 @@ final class ExpireReservations implements ShouldQueue
 
     public function handle(ExpireReservationAction $action): void
     {
+        $expiredAt = now();
+
         Reservation::query()
             ->where('status', ReservationStatus::Active->value)
-            ->where('expires_at', '<=', now())
+            ->where('expires_at', '<=', $expiredAt)
             ->orderBy('id')
-            ->eachById(fn (Reservation $reservation) => $action->execute($reservation->id));
+            ->eachById(
+                fn (Reservation $reservation) => $action->execute(
+                    $reservation->id,
+                    $expiredAt,
+                )
+            );
     }
 }

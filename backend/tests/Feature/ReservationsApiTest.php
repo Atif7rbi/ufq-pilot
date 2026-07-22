@@ -62,7 +62,10 @@ final class ReservationsApiTest extends ApiTestCase
             ->assertJsonPath('data.reservation.unit_id', $unitId)
             ->assertJsonPath('data.reservation.customer_id', $customerId)
             ->assertJsonPath('data.reservation.status', 'active')
-            ->assertJsonPath('data.reservation.expires_at', '2026-07-24T10:00:00.000000Z');
+            ->assertJsonPath(
+                'data.reservation.expires_at',
+                now()->addHours(48)->utc()->toISOString()
+            );
 
         $this->assertDatabaseHas('reservations', [
             'unit_id' => $unitId,
@@ -88,7 +91,10 @@ final class ReservationsApiTest extends ApiTestCase
             'expires_at' => '2026-07-23 12:00:00',
             'notes' => 'تم تمديد الحجز.',
         ])->assertOk()
-            ->assertJsonPath('data.reservation.expires_at', '2026-07-23T12:00:00.000000Z')
+            ->assertJsonPath(
+                'data.reservation.expires_at',
+                Carbon::parse('2026-07-23 12:00:00')->utc()->toISOString()
+            )
             ->assertJsonPath('data.reservation.notes', 'تم تمديد الحجز.');
 
         $this->patchJson("/api/reservations/{$reservationId}", [
