@@ -6,6 +6,7 @@ import type {
   AvailableReservationUnit,
   AvailableReservationUnitsResponse,
   Reservation,
+  ReservationCancellationPayload,
   ReservationFormPayload,
   ReservationResponse,
   ReservationUpdatePayload,
@@ -78,6 +79,23 @@ export async function updateReservation(
     {
       token,
       method: "PATCH",
+      body: payload,
+    }
+  );
+
+  return result.data.reservation;
+}
+
+export async function cancelReservation(
+  token: string,
+  reservationId: string,
+  payload: ReservationCancellationPayload
+): Promise<Reservation> {
+  const result = await requestJson<ReservationResponse>(
+    `/reservations/${reservationId}/cancel`,
+    {
+      token,
+      method: "POST",
       body: payload,
     }
   );

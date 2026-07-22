@@ -2,6 +2,7 @@
 
 import {
   CalendarCheck2,
+  CircleX,
   Edit3,
   Eye,
   Filter,
@@ -20,6 +21,7 @@ import { ReservationFormModal } from "@/components/reservations/ReservationFormM
 import { ReservationDetailsModal } from "@/components/reservations/ReservationDetailsModal";
 import { ReservationUpdateModal } from "@/components/reservations/ReservationUpdateModal";
 import { Button } from "@/components/ui/Button";
+import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
 import {
   CrudPageHeader,
   CrudPageLayout,
@@ -39,6 +41,7 @@ import { fetchProjects } from "@/services/projects";
 import { fetchCustomers } from "@/services/customers";
 import {
   createReservation,
+  cancelReservation,
   fetchAvailableReservationUnits,
   fetchReservation,
   fetchReservations,
@@ -48,6 +51,7 @@ import type { Customer } from "@/types/customer";
 import type { Project } from "@/types/project";
 import type {
   Reservation,
+  ReservationCancellationPayload,
   AvailableReservationUnit,
   ReservationFormPayload,
   ReservationStatus,
@@ -95,6 +99,10 @@ export default function ReservationsPage() {
   const [isDetailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
   const [editReservation, setEditReservation] = useState<Reservation | null>(null);
+  const [cancelReservationItem, setCancelReservationItem] = useState<Reservation | null>(null);
+  const [cancellationReason, setCancellationReason] = useState("");
+  const [isCancelling, setCancelling] = useState(false);
+  const [cancelError, setCancelError] = useState<string | null>(null);
 
   const loadReservations = useCallback(
     async (targetPage = page): Promise<void> => {
@@ -270,6 +278,34 @@ export default function ReservationsPage() {
     }
   };
 
+  const submitCancellation = async (): Promise<void> => {
+    if (!token || !cancelReservationItem) {
+      return;
+    }
+
+    const payload: ReservationCancellationPayload = {
+      cancellation_reason: cancellationReason.trim() || null,
+    };
+
+    setCancelling(true);
+    setCancelError(null);
+
+    try {
+      await cancelReservation(token, cancelReservationItem.id, payload);
+      await loadReservations();
+      setCancelReservationItem(null);
+      setCancellationReason("");
+    } catch (caughtError) {
+      setCancelError(
+        caughtError instanceof Error
+          ? caughtError.message
+          : "تعذر إلغاء الحجز."
+      );
+    } finally {
+      setCancelling(false);
+    }
+  };
+
   return (
     <AppShell>
       <CrudPageLayout>
@@ -404,14 +440,28 @@ export default function ReservationsPage() {
                         <Eye size={17} />
                       </button>
                       {reservation.status === "active" ? (
-                        <button
-                          type="button"
-                          onClick={() => setEditReservation(reservation)}
-                          className="rounded-lg p-2 text-[var(--brand-gold-strong)] hover:bg-[var(--brand-gold-soft)]"
-                          aria-label="تعديل الحجز"
-                        >
-                          <Edit3 size={17} />
-                        </button>
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => setEditReservation(reservation)}
+                            className="rounded-lg p-2 text-[var(--brand-gold-strong)] hover:bg-[var(--brand-gold-soft)]"
+                            aria-label="تعديل الحجز"
+                          >
+                            <Edit3 size={17} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCancelReservationItem(reservation);
+                              setCancellationReason("");
+                              setCancelError(null);
+                            }}
+                            className="rounded-lg p-2 text-[var(--danger)] hover:bg-[var(--danger-soft)]"
+                            aria-label="إلغاء الحجز"
+                          >
+                            <CircleX size={17} />
+                          </button>
+                        </>
                       ) : null}
                     </td>
                   </tr>
@@ -471,6 +521,51 @@ export default function ReservationsPage() {
         }}
         onSubmit={submitUpdateForm}
       />
+
+      <ConfirmationDialog
+        isOpen={cancelReservationItem !== null}
+        title="إلغاء الحجز"
+        description={
+          cancelReservationItem
+            ? `سيتم إلغاء حجز الوحدة ${cancelReservationItem.unit?.unit_number ?? ""}.`
+            : ""
+        }
+        icon={
+          <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--danger-soft)] text-[var(--danger)]">
+            <CircleX size={21} />
+          </span>
+        }
+        error={cancelError}
+        isProcessing={isCancelling}
+        closeLabel="إغلاق"
+        cancelLabel="الرجوع"
+        confirmLabel="إلغاء الحجز"
+        processingLabel="جارٍ الإلغاء..."
+        confirmVariant="danger"
+        onCancel={() => {
+          if (!isCancelling) {
+            setCancelReservationItem(null);
+            setCancellationReason("");
+            setCancelError(null);
+          }
+        }}
+        onConfirm={() => void submitCancellation()}
+      >
+        <label
+          htmlFor="cancellation-reason"
+          className="mb-2 block text-sm font-semibold text-[var(--text-secondary)]"
+        >
+          سبب الإلغاء (اختياري)
+        </label>
+        <textarea
+          id="cancellation-reason"
+          value={cancellationReason}
+          disabled={isCancelling}
+          onChange={(event) => setCancellationReason(event.target.value)}
+          rows={3}
+          className="max-h-40 min-h-24 w-full resize-none overflow-y-auto rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--brand-gold)]"
+        />
+      </ConfirmationDialog>
     </AppShell>
   );
 }

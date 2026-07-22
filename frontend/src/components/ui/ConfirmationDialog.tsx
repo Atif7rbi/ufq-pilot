@@ -15,6 +15,7 @@ type ConfirmationDialogProps = {
   cancelLabel: string;
   confirmLabel: string;
   processingLabel: string;
+  children?: ReactNode;
   confirmVariant?: "primary" | "danger";
   confirmClassName?: string;
   onCancel: () => void;
@@ -32,6 +33,7 @@ export function ConfirmationDialog({
   cancelLabel,
   confirmLabel,
   processingLabel,
+  children,
   confirmVariant = "primary",
   confirmClassName = "",
   onCancel,
@@ -56,6 +58,7 @@ export function ConfirmationDialog({
         <div className="mt-4">
           <FormErrorBanner message={error} />
         </div>
+        {children ? <div className="mt-4">{children}</div> : null}
 
         <div className="mt-6 flex justify-end gap-3">
           <Button

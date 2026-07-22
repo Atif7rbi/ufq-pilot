@@ -51,6 +51,10 @@ export type ReservationUpdatePayload = {
   notes?: string | null;
 };
 
+export type ReservationCancellationPayload = {
+  cancellation_reason?: string | null;
+};
+
 export type ReservationsResponse = {
   data: {
     reservations: ReservationPagination;
