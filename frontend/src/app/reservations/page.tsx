@@ -2,6 +2,7 @@
 
 import {
   CalendarCheck2,
+  Eye,
   Filter,
   Plus,
   RefreshCw,
@@ -15,6 +16,7 @@ import {
 
 import { AppShell } from "@/components/layout/AppShell";
 import { ReservationFormModal } from "@/components/reservations/ReservationFormModal";
+import { ReservationDetailsModal } from "@/components/reservations/ReservationDetailsModal";
 import { Button } from "@/components/ui/Button";
 import {
   CrudPageHeader,
@@ -36,6 +38,7 @@ import { fetchCustomers } from "@/services/customers";
 import {
   createReservation,
   fetchAvailableReservationUnits,
+  fetchReservation,
   fetchReservations,
 } from "@/services/reservations";
 import type { Customer } from "@/types/customer";
@@ -85,6 +88,9 @@ export default function ReservationsPage() {
   const [availableUnits, setAvailableUnits] = useState<AvailableReservationUnit[]>([]);
   const [isLoadingOptions, setLoadingOptions] = useState(false);
   const [isSubmitting, setSubmitting] = useState(false);
+  const [detailReservation, setDetailReservation] = useState<Reservation | null>(null);
+  const [isDetailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState<string | null>(null);
 
   const loadReservations = useCallback(
     async (targetPage = page): Promise<void> => {
@@ -220,6 +226,28 @@ export default function ReservationsPage() {
     }
   };
 
+  const openDetail = async (reservation: Reservation): Promise<void> => {
+    if (!token) {
+      return;
+    }
+
+    setDetailReservation(reservation);
+    setDetailLoading(true);
+    setDetailError(null);
+
+    try {
+      setDetailReservation(await fetchReservation(token, reservation.id));
+    } catch (caughtError) {
+      setDetailError(
+        caughtError instanceof Error
+          ? caughtError.message
+          : "تعذر تحميل تفاصيل الحجز."
+      );
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+
   return (
     <AppShell>
       <CrudPageLayout>
@@ -331,6 +359,7 @@ export default function ReservationsPage() {
                   <th className="px-3 py-3">تاريخ الحجز</th>
                   <th className="px-3 py-3">ينتهي في</th>
                   <th className="px-3 py-3">ملاحظات</th>
+                  <th className="px-3 py-3">الإجراءات</th>
                 </tr>
               </thead>
               <tbody>
@@ -343,6 +372,16 @@ export default function ReservationsPage() {
                     <td className="px-3 py-4 text-sm text-[var(--text-secondary)]">{formatDate(reservation.reserved_at)}</td>
                     <td className="px-3 py-4 text-sm text-[var(--text-secondary)]">{formatDate(reservation.expires_at)}</td>
                     <td className="max-w-56 px-3 py-4 text-sm text-[var(--text-secondary)]"><span className="line-clamp-2">{reservation.notes || "—"}</span></td>
+                    <td className="px-3 py-4">
+                      <button
+                        type="button"
+                        onClick={() => void openDetail(reservation)}
+                        className="rounded-lg p-2 text-[var(--info)] hover:bg-[var(--info-soft)]"
+                        aria-label="عرض التفاصيل"
+                      >
+                        <Eye size={17} />
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -378,6 +417,16 @@ export default function ReservationsPage() {
           onSubmit={submitCreateForm}
         />
       ) : null}
+
+      <ReservationDetailsModal
+        reservation={detailReservation}
+        isLoading={isDetailLoading}
+        error={detailError}
+        onClose={() => {
+          setDetailReservation(null);
+          setDetailError(null);
+        }}
+      />
     </AppShell>
   );
 }

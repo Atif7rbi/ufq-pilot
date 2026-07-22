@@ -54,3 +54,15 @@ export async function createReservation(
 
   return result.data.reservation;
 }
+
+export async function fetchReservation(
+  token: string,
+  reservationId: string
+): Promise<Reservation> {
+  const result = await requestJson<ReservationResponse>(
+    `/reservations/${reservationId}`,
+    { token }
+  );
+
+  return result.data.reservation;
+}
