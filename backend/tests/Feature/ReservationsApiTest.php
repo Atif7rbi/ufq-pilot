@@ -93,7 +93,10 @@ final class ReservationsApiTest extends ApiTestCase
         ])->assertOk()
             ->assertJsonPath(
                 'data.reservation.expires_at',
-                Carbon::parse('2026-07-23 12:00:00')->utc()->toISOString()
+                Carbon::parse(
+                    '2026-07-23 12:00:00',
+                    config('app.timezone'),
+                )->utc()->toISOString()
             )
             ->assertJsonPath('data.reservation.notes', 'تم تمديد الحجز.');
 

@@ -10,7 +10,6 @@ use App\Modules\Reservations\Models\Reservation;
 use Carbon\CarbonInterface;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
-use Illuminate\Support\Facades\Log;
 
 final class ExpireReservations implements ShouldQueue
 {
@@ -31,13 +30,6 @@ final class ExpireReservations implements ShouldQueue
             ->where('status', ReservationStatus::Active->value)
             ->orderBy('id')
             ->pluck('id');
-
-        Log::debug('Reservation expiration candidates', [
-            'count' => $reservationIds->count(),
-            'ids' => $reservationIds->all(),
-            'clock' => $expiredAt->toISOString(),
-            'clock_timezone' => $expiredAt->getTimezone()->getName(),
-        ]);
 
         $reservationIds->each(
             fn (string $id) => $action->execute($id, $expiredAt)

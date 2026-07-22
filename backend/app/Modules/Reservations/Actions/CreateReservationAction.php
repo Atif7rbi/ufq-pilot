@@ -13,8 +13,8 @@ use App\Modules\Reservations\Models\Reservation;
 use App\Modules\Reservations\Policies\ReservationPolicy;
 use App\Modules\Units\Enums\UnitStatus;
 use App\Modules\Units\Models\Unit;
-use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Date;
 
 final class CreateReservationAction
 {
@@ -48,9 +48,12 @@ final class CreateReservationAction
                 throw new ReservationUnitUnavailableException();
             }
 
-            $reservedAt = CarbonImmutable::now();
+            $reservedAt = Date::now()->toImmutable();
             $expiresAt = isset($data['expires_at'])
-                ? CarbonImmutable::parse($data['expires_at'])
+                ? Date::parse(
+                    $data['expires_at'],
+                    config('app.timezone'),
+                )->toImmutable()
                 : $reservedAt->add(ReservationPolicy::defaultDuration());
 
             return Reservation::query()->create([

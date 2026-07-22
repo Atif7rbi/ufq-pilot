@@ -8,6 +8,7 @@ use App\Modules\Reservations\Enums\ReservationStatus;
 use App\Modules\Reservations\Exceptions\ReservationNotActiveException;
 use App\Modules\Reservations\Models\Reservation;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Date;
 
 final class UpdateReservationAction
 {
@@ -20,6 +21,13 @@ final class UpdateReservationAction
 
             if ($reservation->status !== ReservationStatus::Active) {
                 throw new ReservationNotActiveException();
+            }
+
+            if (array_key_exists('expires_at', $data)) {
+                $data['expires_at'] = Date::parse(
+                    $data['expires_at'],
+                    config('app.timezone'),
+                )->toImmutable();
             }
 
             $reservation->fill([
