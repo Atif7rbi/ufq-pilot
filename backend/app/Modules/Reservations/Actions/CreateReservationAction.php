@@ -83,11 +83,21 @@ final class CreateReservationAction
                 "select current_setting('TIMEZONE') as timezone",
             );
 
+            $freshReservation = Reservation::query()
+                ->findOrFail($reservation->id);
+
             Log::debug('Reservation creation UTC verification', [
                 'reservation_id' => $reservation->id,
                 'expires_at' => $rawExpiresAt->expires_at,
                 'expires_at_utc' => $utcExpiresAt->expires_at_utc,
                 'database_timezone' => $timezone->timezone,
+                'model_raw_original' => $freshReservation
+                    ->getRawOriginal('expires_at'),
+                'model_cast' => $freshReservation->expires_at
+                    ->toISOString(),
+                'model_cast_timezone' => $freshReservation->expires_at
+                    ->getTimezone()
+                    ->getName(),
             ]);
 
             return $reservation;
