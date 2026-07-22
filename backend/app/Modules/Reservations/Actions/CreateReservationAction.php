@@ -15,7 +15,6 @@ use App\Modules\Units\Enums\UnitStatus;
 use App\Modules\Units\Models\Unit;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 
 final class CreateReservationAction
 {
@@ -67,19 +66,6 @@ final class CreateReservationAction
                 'notes' => $data['notes'] ?? null,
                 'created_by' => $actorId,
                 'updated_by' => $actorId,
-            ]);
-
-            Log::debug('Reservation action return boundary', [
-                'object_id' => spl_object_id($reservation),
-                'class' => $reservation::class,
-                'raw_reserved_at' => $reservation->getRawOriginal('reserved_at'),
-                'raw_expires_at' => $reservation->getRawOriginal('expires_at'),
-                'attribute_reserved_at' => $reservation->getAttributes()['reserved_at'] ?? null,
-                'attribute_expires_at' => $reservation->getAttributes()['expires_at'] ?? null,
-                'cast_reserved_at' => $reservation->reserved_at?->toISOString(),
-                'cast_expires_at' => $reservation->expires_at?->toISOString(),
-                'reserved_timezone' => $reservation->reserved_at?->getTimezone()->getName(),
-                'expires_timezone' => $reservation->expires_at?->getTimezone()->getName(),
             ]);
 
             return $reservation;

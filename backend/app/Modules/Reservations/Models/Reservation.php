@@ -7,6 +7,7 @@ namespace App\Modules\Reservations\Models;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Modules\Customers\Models\Customer;
+use App\Modules\Reservations\Casts\UtcDateTimeCast;
 use App\Modules\Reservations\Enums\ReservationStatus;
 use App\Modules\Units\Models\Unit;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
@@ -27,8 +28,8 @@ final class Reservation extends Model
     {
         return [
             'status' => ReservationStatus::class,
-            'reserved_at' => 'datetime',
-            'expires_at' => 'datetime',
+            'reserved_at' => UtcDateTimeCast::class,
+            'expires_at' => UtcDateTimeCast::class,
             'cancelled_at' => 'datetime',
         ];
     }

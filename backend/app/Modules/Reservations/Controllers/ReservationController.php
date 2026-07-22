@@ -19,7 +19,6 @@ use App\Modules\Reservations\Resources\ReservationResource;
 use App\Modules\Shared\Services\ResolveActiveMembership;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -86,19 +85,6 @@ final class ReservationController extends Controller
         } catch (ReservationUnitUnavailableException $exception) {
             $this->throwValidationException('unit_id', $exception->getMessage());
         }
-
-        Log::debug('Reservation controller receive boundary', [
-            'object_id' => spl_object_id($reservation),
-            'class' => $reservation::class,
-            'raw_reserved_at' => $reservation->getRawOriginal('reserved_at'),
-            'raw_expires_at' => $reservation->getRawOriginal('expires_at'),
-            'attribute_reserved_at' => $reservation->getAttributes()['reserved_at'] ?? null,
-            'attribute_expires_at' => $reservation->getAttributes()['expires_at'] ?? null,
-            'cast_reserved_at' => $reservation->reserved_at?->toISOString(),
-            'cast_expires_at' => $reservation->expires_at?->toISOString(),
-            'reserved_timezone' => $reservation->reserved_at?->getTimezone()->getName(),
-            'expires_timezone' => $reservation->expires_at?->getTimezone()->getName(),
-        ]);
 
         return response()->json([
             'message' => 'تم إنشاء الحجز بنجاح.',
