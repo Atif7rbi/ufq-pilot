@@ -1,11 +1,17 @@
 "use client";
 
-import { Building2, X } from "lucide-react";
+import { Building2 } from "lucide-react";
 import { useState, type FormEvent } from "react";
 
 import { Button } from "@/components/ui/Button";
-import { FormErrorBanner } from "@/components/ui/FormErrorBanner";
+import { FormShell } from "@/components/ui/FormShell";
 import { Input } from "@/components/ui/Input";
+import {
+  Modal,
+  ModalFooter,
+  ModalHeader,
+} from "@/components/ui/Modal";
+import { Select } from "@/components/ui/Select";
 import { useFormValidation } from "@/hooks/useFormValidation";
 import { useTranslation } from "@/hooks/useTranslation";
 import type { Project } from "@/types/project";
@@ -98,10 +104,6 @@ export function UnitFormModal({
     setValidationError,
   } = useFormValidation();
 
-  if (!isOpen) {
-    return null;
-  }
-
   const labels = isArabic
     ? {
         create: "إضافة وحدة",
@@ -181,14 +183,20 @@ export function UnitFormModal({
     setForm((current) => ({ ...current, [key]: value }));
   };
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (
+    event: FormEvent<HTMLFormElement>
+  ): Promise<void> => {
     event.preventDefault();
     clearValidation();
 
     const errors = {
       ...(!form.project_id ? { project_id: [labels.required] } : {}),
-      ...(!form.unit_number.trim() ? { unit_number: [labels.required] } : {}),
-      ...(!form.selling_price.trim() ? { selling_price: [labels.required] } : {}),
+      ...(!form.unit_number.trim()
+        ? { unit_number: [labels.required] }
+        : {}),
+      ...(!form.selling_price.trim()
+        ? { selling_price: [labels.required] }
+        : {}),
     };
 
     if (Object.keys(errors).length > 0) {
@@ -215,38 +223,174 @@ export function UnitFormModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center p-3 sm:p-6">
-      <button type="button" onClick={onClose} aria-label={labels.close} className="absolute inset-0 bg-slate-950/55 backdrop-blur-[2px]" />
-      <div className="relative flex max-h-[94vh] w-full max-w-3xl flex-col overflow-hidden rounded-[26px] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-lg)]">
-        <header className="flex items-start justify-between gap-4 border-b border-[var(--border)] px-5 py-5 sm:px-7">
-          <div className="flex items-start gap-4"><span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--brand-gold-soft)] text-[var(--brand-gold-strong)]"><Building2 size={21} /></span><div><h2 className="text-lg font-bold text-[var(--text-primary)]">{unit ? labels.edit : labels.create}</h2><p className="mt-1 text-xs text-[var(--text-secondary)]">{labels.description}</p></div></div>
-          <button type="button" onClick={onClose} aria-label={labels.close} className="flex h-9 w-9 items-center justify-center rounded-xl text-[var(--text-muted)] hover:bg-[var(--surface-muted)]"><X size={19} /></button>
-        </header>
-        <form ref={formRef} onSubmit={handleSubmit} className="min-h-0 flex-1 overflow-y-auto">
-          <div className="space-y-5 px-5 py-6 sm:px-7">
-            <FormErrorBanner message={formError} />
-            <SelectField label={labels.project} name="project_id" value={form.project_id} error={fieldErrors.project_id?.[0]} onChange={(value) => updateField("project_id", value)} options={[{ value: "", label: labels.chooseProject }, ...projects.map((project) => ({ value: project.id, label: `${project.project_number} — ${project.name}` }))]} />
-            <div className="grid gap-5 sm:grid-cols-2">
-              <Input label={labels.number} name="unit_number" value={form.unit_number} onChange={(event) => updateField("unit_number", event.target.value)} error={fieldErrors.unit_number?.[0]} required />
-              <SelectField label={labels.type} name="unit_type" value={form.unit_type} error={fieldErrors.unit_type?.[0]} onChange={(value) => updateField("unit_type", value as UnitType)} options={unitTypes.map((type) => ({ value: type, label: typeLabels[type] }))} />
-              <SelectField label={labels.status} name="status" value={form.status} error={fieldErrors.status?.[0]} onChange={(value) => updateField("status", value as UnitStatus)} options={[{ value: "available", label: labels.available }, { value: "sold", label: labels.sold }]} />
-              <Input label={labels.price} name="selling_price" type="number" min="0" step="0.01" value={form.selling_price} onChange={(event) => updateField("selling_price", event.target.value)} error={fieldErrors.selling_price?.[0]} required />
-              <Input label={labels.area} name="area" type="number" step="0.01" value={form.area} onChange={(event) => updateField("area", event.target.value)} error={fieldErrors.area?.[0]} />
-              <Input label={labels.floor} name="floor" type="number" step="1" value={form.floor} onChange={(event) => updateField("floor", event.target.value)} error={fieldErrors.floor?.[0]} />
-              <Input label={labels.bedrooms} name="bedrooms" type="number" min="0" step="1" value={form.bedrooms} onChange={(event) => updateField("bedrooms", event.target.value)} error={fieldErrors.bedrooms?.[0]} />
-              <Input label={labels.bathrooms} name="bathrooms" type="number" min="0" step="1" value={form.bathrooms} onChange={(event) => updateField("bathrooms", event.target.value)} error={fieldErrors.bathrooms?.[0]} />
-            </div>
-            <div><label htmlFor="unit-notes" className="mb-2 block text-sm font-semibold text-[var(--text-secondary)]">{labels.notes}</label><textarea id="unit-notes" name="notes" rows={4} value={form.notes} onChange={(event) => updateField("notes", event.target.value)} className="w-full resize-y rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--brand-gold)]" />{fieldErrors.notes?.[0] ? <p className="mt-2 text-sm font-medium text-[var(--danger)]">{fieldErrors.notes[0]}</p> : null}</div>
-          </div>
-          <footer className="sticky bottom-0 flex justify-end gap-3 border-t border-[var(--border)] bg-[var(--surface)] px-5 py-4 sm:px-7"><Button type="button" variant="secondary" onClick={onClose} disabled={isSubmitting}>{labels.cancel}</Button><Button type="submit" disabled={isSubmitting} className="!bg-[var(--brand-gold)] !text-white hover:!bg-[var(--brand-gold-strong)]">{isSubmitting ? labels.saving : labels.save}</Button></footer>
-        </form>
-      </div>
-    </div>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      closeLabel={labels.close}
+      maxWidthClassName="max-w-3xl"
+      className="flex max-h-[94vh] flex-col"
+    >
+      <ModalHeader
+        icon={
+          <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--brand-gold-soft)] text-[var(--brand-gold-strong)]">
+            <Building2 size={21} />
+          </span>
+        }
+        title={unit ? labels.edit : labels.create}
+        description={labels.description}
+        closeLabel={labels.close}
+        onClose={onClose}
+      />
+
+      <FormShell
+        formRef={formRef}
+        error={formError}
+        onSubmit={handleSubmit}
+        footer={
+          <ModalFooter className="sticky bottom-0">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={onClose}
+              disabled={isSubmitting}
+            >
+              {labels.cancel}
+            </Button>
+            <Button
+              type="submit"
+              disabled={isSubmitting}
+              className="!bg-[var(--brand-gold)] !text-white hover:!bg-[var(--brand-gold-strong)]"
+            >
+              {isSubmitting ? labels.saving : labels.save}
+            </Button>
+          </ModalFooter>
+        }
+      >
+        <Select
+          label={labels.project}
+          name="project_id"
+          value={form.project_id}
+          error={fieldErrors.project_id?.[0]}
+          onChange={(event) => updateField("project_id", event.target.value)}
+          options={[
+            { value: "", label: labels.chooseProject },
+            ...projects.map((project) => ({
+              value: project.id,
+              label: `${project.project_number} — ${project.name}`,
+            })),
+          ]}
+        />
+
+        <div className="grid gap-5 sm:grid-cols-2">
+          <Input
+            label={labels.number}
+            name="unit_number"
+            value={form.unit_number}
+            onChange={(event) => updateField("unit_number", event.target.value)}
+            error={fieldErrors.unit_number?.[0]}
+            required
+          />
+          <Select
+            label={labels.type}
+            name="unit_type"
+            value={form.unit_type}
+            error={fieldErrors.unit_type?.[0]}
+            onChange={(event) =>
+              updateField("unit_type", event.target.value as UnitType)
+            }
+            options={unitTypes.map((type) => ({
+              value: type,
+              label: typeLabels[type],
+            }))}
+          />
+          <Select
+            label={labels.status}
+            name="status"
+            value={form.status}
+            error={fieldErrors.status?.[0]}
+            onChange={(event) =>
+              updateField("status", event.target.value as UnitStatus)
+            }
+            options={[
+              { value: "available", label: labels.available },
+              { value: "sold", label: labels.sold },
+            ]}
+          />
+          <Input
+            label={labels.price}
+            name="selling_price"
+            type="number"
+            min="0"
+            step="0.01"
+            value={form.selling_price}
+            onChange={(event) =>
+              updateField("selling_price", event.target.value)
+            }
+            error={fieldErrors.selling_price?.[0]}
+            required
+          />
+          <Input
+            label={labels.area}
+            name="area"
+            type="number"
+            step="0.01"
+            value={form.area}
+            onChange={(event) => updateField("area", event.target.value)}
+            error={fieldErrors.area?.[0]}
+          />
+          <Input
+            label={labels.floor}
+            name="floor"
+            type="number"
+            step="1"
+            value={form.floor}
+            onChange={(event) => updateField("floor", event.target.value)}
+            error={fieldErrors.floor?.[0]}
+          />
+          <Input
+            label={labels.bedrooms}
+            name="bedrooms"
+            type="number"
+            min="0"
+            step="1"
+            value={form.bedrooms}
+            onChange={(event) => updateField("bedrooms", event.target.value)}
+            error={fieldErrors.bedrooms?.[0]}
+          />
+          <Input
+            label={labels.bathrooms}
+            name="bathrooms"
+            type="number"
+            min="0"
+            step="1"
+            value={form.bathrooms}
+            onChange={(event) => updateField("bathrooms", event.target.value)}
+            error={fieldErrors.bathrooms?.[0]}
+          />
+        </div>
+
+        <div>
+          <label
+            htmlFor="unit-notes"
+            className="mb-2 block text-sm font-semibold text-[var(--text-secondary)]"
+          >
+            {labels.notes}
+          </label>
+          <textarea
+            id="unit-notes"
+            name="notes"
+            rows={4}
+            value={form.notes}
+            onChange={(event) => updateField("notes", event.target.value)}
+            className="w-full resize-y rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--brand-gold)]"
+          />
+          {fieldErrors.notes?.[0] ? (
+            <p className="mt-2 text-sm font-medium text-[var(--danger)]">
+              {fieldErrors.notes[0]}
+            </p>
+          ) : null}
+        </div>
+      </FormShell>
+    </Modal>
   );
-}
-
-type SelectFieldProps = { label: string; name: string; value: string; error?: string; options: Array<{ value: string; label: string }>; onChange: (value: string) => void };
-
-function SelectField({ label, name, value, error, options, onChange }: SelectFieldProps) {
-  return <div><label className="mb-2 block text-sm font-semibold text-[var(--text-secondary)]">{label}</label><select name={name} value={value} aria-invalid={error ? true : undefined} onChange={(event) => onChange(event.target.value)} className="h-12 w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--brand-gold)]">{options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select>{error ? <p className="mt-2 text-sm font-medium text-[var(--danger)]">{error}</p> : null}</div>;
 }

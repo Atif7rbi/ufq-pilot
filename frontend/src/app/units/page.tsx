@@ -14,10 +14,10 @@ import {
 import { useCallback, useEffect, useState } from "react";
 
 import { AppShell } from "@/components/layout/AppShell";
-import { UnitArchiveDialog } from "@/components/units/UnitArchiveDialog";
 import { UnitDetailsModal } from "@/components/units/UnitDetailsModal";
 import { UnitFormModal } from "@/components/units/UnitFormModal";
 import { Button } from "@/components/ui/Button";
+import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
 import {
   CrudPageHeader,
   CrudPageLayout,
@@ -613,17 +613,42 @@ export default function UnitsPage() {
         }}
       />
 
-      <UnitArchiveDialog
-        unit={actionUnit}
-        action={action}
+      <ConfirmationDialog
+        isOpen={actionUnit !== null}
+        title={action === "archive" ? "أرشفة الوحدة" : "استعادة الوحدة"}
+        description={
+          actionUnit
+            ? action === "archive"
+              ? `سيتم أرشفة الوحدة ${actionUnit.unit_number}.`
+              : `سيتم استعادة الوحدة ${actionUnit.unit_number}.`
+            : ""
+        }
+        icon={
+          <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--brand-gold-soft)] text-[var(--brand-gold-strong)]">
+            {action === "archive" ? (
+              <Archive size={21} />
+            ) : (
+              <RotateCcw size={21} />
+            )}
+          </span>
+        }
         isProcessing={isProcessing}
         error={actionError}
+        closeLabel="إغلاق"
+        cancelLabel="إلغاء"
+        confirmLabel={action === "archive" ? "أرشفة" : "استعادة"}
+        processingLabel="جارٍ التنفيذ..."
+        confirmClassName={
+          action === "archive"
+            ? "!bg-[var(--brand-gold)] !text-white hover:!bg-[var(--brand-gold-strong)]"
+            : "!bg-[var(--success)] !text-white hover:opacity-90"
+        }
         onCancel={() => {
           if (!isProcessing) {
             setActionUnit(null);
           }
         }}
-        onConfirm={confirmAction}
+        onConfirm={() => void confirmAction()}
       />
     </AppShell>
   );
