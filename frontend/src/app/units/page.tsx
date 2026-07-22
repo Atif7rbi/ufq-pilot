@@ -11,7 +11,12 @@ import {
   RotateCcw,
   Search,
 } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useState,
+  type CSSProperties,
+} from "react";
 
 import { AppShell } from "@/components/layout/AppShell";
 import { UnitDetailsModal } from "@/components/units/UnitDetailsModal";
@@ -712,68 +717,68 @@ function UnitDescriptionCell({
     return "—";
   }
 
-  const isLong = description.length > 90;
+  const previewStyle: CSSProperties = {
+    display: "-webkit-box",
+    WebkitBoxOrient: "vertical",
+    WebkitLineClamp: 2,
+    overflow: "hidden",
+    lineHeight: "1.5rem",
+    maxHeight: "3rem",
+  };
 
   return (
     <>
       <span
-        title={isLong ? description : undefined}
-        className={[
-          "hidden max-w-64 md:block",
-          isLong ? "line-clamp-2" : "whitespace-pre-wrap",
-        ].join(" ")}
+        title={description}
+        className="hidden max-w-64 whitespace-pre-wrap md:block"
+        style={previewStyle}
       >
         {description}
       </span>
 
-      {isLong ? (
-        <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="block max-w-52 text-start md:hidden"
+        style={previewStyle}
+        aria-label="عرض الوصف كاملًا"
+      >
+        {description}
+      </button>
+
+      {isOpen ? (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center p-4 md:hidden">
           <button
             type="button"
-            onClick={() => setOpen(true)}
-            className="line-clamp-2 block max-w-52 text-start md:hidden"
-            aria-label="عرض الوصف كاملًا"
+            onClick={() => setOpen(false)}
+            aria-label="إغلاق"
+            className="absolute inset-0 bg-slate-950/55"
+          />
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="الوصف"
+            className="relative w-full max-w-md rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[var(--shadow-lg)]"
           >
-            {description}
-          </button>
-
-          {isOpen ? (
-            <div className="fixed inset-0 z-[90] flex items-center justify-center p-4 md:hidden">
-              <button
+            <h3 className="text-base font-bold text-[var(--text-primary)]">
+              الوصف
+            </h3>
+            <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-[var(--text-secondary)]">
+              {description}
+            </p>
+            <div className="mt-5 flex justify-end">
+              <Button
                 type="button"
+                variant="secondary"
+                size="sm"
                 onClick={() => setOpen(false)}
-                aria-label="إغلاق"
-                className="absolute inset-0 bg-slate-950/55"
-              />
-              <div
-                role="dialog"
-                aria-modal="true"
-                aria-label="الوصف"
-                className="relative w-full max-w-md rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[var(--shadow-lg)]"
               >
-                <h3 className="text-base font-bold text-[var(--text-primary)]">
-                  الوصف
-                </h3>
-                <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-[var(--text-secondary)]">
-                  {description}
-                </p>
-                <div className="mt-5 flex justify-end">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => setOpen(false)}
-                  >
-                    إغلاق
-                  </Button>
-                </div>
-              </div>
+                إغلاق
+              </Button>
             </div>
-          ) : null}
-        </>
-      ) : (
-        <span className="whitespace-pre-wrap md:hidden">{description}</span>
-      )}
+          </div>
+        </div>
+      ) : null}
     </>
   );
 }
