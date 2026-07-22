@@ -14,6 +14,7 @@ import {
 import { Select } from "@/components/ui/Select";
 import { useFormValidation } from "@/hooks/useFormValidation";
 import type { Customer } from "@/types/customer";
+import type { Project } from "@/types/project";
 import type {
   AvailableReservationUnit,
   ReservationFormPayload,
@@ -22,15 +23,19 @@ import type {
 type ReservationFormModalProps = {
   isOpen: boolean;
   customers: Customer[];
+  projects: Project[];
   units: AvailableReservationUnit[];
-  isLoadingOptions: boolean;
+  isLoadingInitialOptions: boolean;
+  isLoadingUnits: boolean;
   isSubmitting: boolean;
   onClose: () => void;
+  onProjectChange: (projectId: string) => Promise<void>;
   onSubmit: (payload: ReservationFormPayload) => Promise<void>;
 };
 
 type ReservationFormState = {
   customer_id: string;
+  project_id: string;
   unit_id: string;
   expires_at: string;
   notes: string;
@@ -46,14 +51,18 @@ function defaultExpiry(): string {
 export function ReservationFormModal({
   isOpen,
   customers,
+  projects,
   units,
-  isLoadingOptions,
+  isLoadingInitialOptions,
+  isLoadingUnits,
   isSubmitting,
   onClose,
+  onProjectChange,
   onSubmit,
 }: ReservationFormModalProps) {
   const [form, setForm] = useState<ReservationFormState>({
     customer_id: "",
+    project_id: "",
     unit_id: "",
     expires_at: defaultExpiry(),
     notes: "",
@@ -75,6 +84,21 @@ export function ReservationFormModal({
     setForm((current) => ({ ...current, [key]: value }));
   };
 
+  const selectProject = async (projectId: string): Promise<void> => {
+    updateField("project_id", projectId);
+    setForm((current) => ({ ...current, unit_id: "" }));
+
+    if (!projectId) {
+      return;
+    }
+
+    try {
+      await onProjectChange(projectId);
+    } catch (error) {
+      setValidationError(error, "تعذر تحميل الوحدات المتاحة.");
+    }
+  };
+
   const handleSubmit = async (
     event: FormEvent<HTMLFormElement>
   ): Promise<void> => {
@@ -83,6 +107,7 @@ export function ReservationFormModal({
 
     const errors = {
       ...(!form.customer_id ? { customer_id: ["اختر العميل."] } : {}),
+      ...(!form.project_id ? { project_id: ["اختر المشروع."] } : {}),
       ...(!form.unit_id ? { unit_id: ["اختر الوحدة."] } : {}),
       ...(!form.expires_at ? { expires_at: ["حدد تاريخ انتهاء الحجز."] } : {}),
     };
@@ -140,7 +165,7 @@ export function ReservationFormModal({
             </Button>
             <Button
               type="submit"
-              disabled={isSubmitting || isLoadingOptions}
+              disabled={isSubmitting || isLoadingInitialOptions || isLoadingUnits}
               className="!bg-[var(--brand-gold)] !text-white hover:!bg-[var(--brand-gold-strong)]"
             >
               {isSubmitting ? "جارٍ الحفظ..." : "حفظ الحجز"}
@@ -148,7 +173,7 @@ export function ReservationFormModal({
           </ModalFooter>
         }
       >
-        {isLoadingOptions ? (
+        {isLoadingInitialOptions ? (
           <p className="text-sm text-[var(--text-secondary)]">
             جارٍ تحميل خيارات الحجز...
           </p>
@@ -159,7 +184,7 @@ export function ReservationFormModal({
           name="customer_id"
           value={form.customer_id}
           error={fieldErrors.customer_id?.[0]}
-          disabled={isLoadingOptions}
+          disabled={isLoadingInitialOptions}
           onChange={(event) => updateField("customer_id", event.target.value)}
           options={[
             { value: "", label: "اختر العميل" },
@@ -171,11 +196,27 @@ export function ReservationFormModal({
         />
 
         <Select
+          label="المشروع"
+          name="project_id"
+          value={form.project_id}
+          error={fieldErrors.project_id?.[0]}
+          disabled={isLoadingInitialOptions}
+          onChange={(event) => void selectProject(event.target.value)}
+          options={[
+            { value: "", label: "اختر المشروع" },
+            ...projects.map((project) => ({
+              value: project.id,
+              label: `${project.project_number} — ${project.name}`,
+            })),
+          ]}
+        />
+
+        <Select
           label="الوحدة المتاحة"
           name="unit_id"
           value={form.unit_id}
           error={fieldErrors.unit_id?.[0]}
-          disabled={isLoadingOptions}
+          disabled={!form.project_id || isLoadingUnits || isLoadingInitialOptions}
           onChange={(event) => updateField("unit_id", event.target.value)}
           options={[
             { value: "", label: "اختر الوحدة" },
@@ -185,6 +226,11 @@ export function ReservationFormModal({
             })),
           ]}
         />
+        {isLoadingUnits ? (
+          <p className="-mt-3 text-xs text-[var(--text-secondary)]">
+            جارٍ تحميل الوحدات المتاحة للمشروع...
+          </p>
+        ) : null}
 
         <Input
           label="ينتهي الحجز في"

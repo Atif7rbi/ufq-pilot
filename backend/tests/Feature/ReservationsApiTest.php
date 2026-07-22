@@ -11,6 +11,7 @@ use App\Modules\Projects\Enums\ProjectStatus;
 use App\Modules\Projects\Models\Project;
 use App\Modules\Reservations\Enums\ReservationStatus;
 use App\Modules\Reservations\Models\Reservation;
+use App\Modules\Units\Models\Unit;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Carbon;
 use Laravel\Sanctum\Sanctum;
@@ -241,6 +242,9 @@ final class ReservationsApiTest extends ApiTestCase
         Sanctum::actingAs($tenantAUser);
 
         $eligibleUnit = $this->createAvailableUnit();
+        $eligibleProjectId = Unit::query()
+            ->findOrFail($eligibleUnit)
+            ->project_id;
         $reservedUnit = $this->createAvailableUnit();
         $this->postJson('/api/reservations', [
             'unit_id' => $reservedUnit,
@@ -263,6 +267,12 @@ final class ReservationsApiTest extends ApiTestCase
 
         Sanctum::actingAs($tenantAUser);
         $this->getJson('/api/reservations/available-units')
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['project_id']);
+
+        $this->getJson(
+            "/api/reservations/available-units?project_id={$eligibleProjectId}",
+        )
             ->assertOk()
             ->assertJsonCount(1, 'data.units')
             ->assertJsonPath('data.units.0.id', $eligibleUnit)

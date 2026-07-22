@@ -34,10 +34,12 @@ export async function fetchReservations(
 }
 
 export async function fetchAvailableReservationUnits(
-  token: string
+  token: string,
+  projectId: string
 ): Promise<AvailableReservationUnit[]> {
+  const query = createQueryString({ project_id: projectId });
   const result = await requestJson<AvailableReservationUnitsResponse>(
-    "/reservations/available-units",
+    `/reservations/available-units?${query}`,
     { token }
   );
 

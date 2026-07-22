@@ -82,6 +82,9 @@ final class ReservationController extends Controller
         Request $request,
         ListAvailableReservationUnitsAction $action,
     ): JsonResponse {
+        $validated = $request->validate([
+            'project_id' => ['required', 'ulid'],
+        ]);
         $membership = $this->resolveActiveMembership->handle(
             $request->user(),
         );
@@ -90,6 +93,7 @@ final class ReservationController extends Controller
             'data' => [
                 'units' => $action->execute(
                     (string) $membership->tenant_id,
+                    $validated['project_id'],
                 ),
             ],
         ]);

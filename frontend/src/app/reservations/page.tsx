@@ -93,8 +93,10 @@ export default function ReservationsPage() {
   const [error, setError] = useState<string | null>(null);
   const [isFormOpen, setFormOpen] = useState(false);
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [activeProjects, setActiveProjects] = useState<Project[]>([]);
   const [availableUnits, setAvailableUnits] = useState<AvailableReservationUnit[]>([]);
-  const [isLoadingOptions, setLoadingOptions] = useState(false);
+  const [isLoadingInitialOptions, setLoadingInitialOptions] = useState(false);
+  const [isLoadingAvailableUnits, setLoadingAvailableUnits] = useState(false);
   const [isSubmitting, setSubmitting] = useState(false);
   const [detailReservation, setDetailReservation] = useState<Reservation | null>(null);
   const [isDetailLoading, setDetailLoading] = useState(false);
@@ -195,15 +197,16 @@ export default function ReservationsPage() {
     }
 
     setFormOpen(true);
-    setLoadingOptions(true);
+    setAvailableUnits([]);
+    setLoadingInitialOptions(true);
 
     try {
-      const [unitOptions, customerResponse] = await Promise.all([
-        fetchAvailableReservationUnits(token),
+      const [projectResponse, customerResponse] = await Promise.all([
+        fetchProjects(token, { perPage: 100, status: "active" }),
         fetchCustomers(token, { per_page: 100 }),
       ]);
 
-      setAvailableUnits(unitOptions);
+      setActiveProjects(projectResponse.data.data);
       setCustomers(
         customerResponse.data.customers.data.filter(
           (customer) =>
@@ -217,7 +220,24 @@ export default function ReservationsPage() {
           : "تعذر تحميل خيارات الحجز."
       );
     } finally {
-      setLoadingOptions(false);
+      setLoadingInitialOptions(false);
+    }
+  };
+
+  const loadAvailableUnits = async (projectId: string): Promise<void> => {
+    if (!token) {
+      return;
+    }
+
+    setLoadingAvailableUnits(true);
+    setAvailableUnits([]);
+
+    try {
+      setAvailableUnits(
+        await fetchAvailableReservationUnits(token, projectId)
+      );
+    } finally {
+      setLoadingAvailableUnits(false);
     }
   };
 
@@ -489,14 +509,17 @@ export default function ReservationsPage() {
         <ReservationFormModal
           isOpen
           customers={customers}
+          projects={activeProjects}
           units={availableUnits}
-          isLoadingOptions={isLoadingOptions}
+          isLoadingInitialOptions={isLoadingInitialOptions}
+          isLoadingUnits={isLoadingAvailableUnits}
           isSubmitting={isSubmitting}
           onClose={() => {
             if (!isSubmitting) {
               setFormOpen(false);
             }
           }}
+          onProjectChange={loadAvailableUnits}
           onSubmit={submitCreateForm}
         />
       ) : null}

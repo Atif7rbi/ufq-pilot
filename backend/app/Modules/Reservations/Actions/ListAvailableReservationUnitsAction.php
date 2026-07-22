@@ -16,11 +16,15 @@ final class ListAvailableReservationUnitsAction
     /**
      * @return Collection<int, array{id: string, unit_number: string, project_name: string}>
      */
-    public function execute(string $tenantId): Collection
+    public function execute(
+        string $tenantId,
+        string $projectId,
+    ): Collection
     {
         return Unit::query()
             ->with('project:id,name,status')
             ->where('tenant_id', $tenantId)
+            ->where('project_id', $projectId)
             ->where('status', UnitStatus::Available->value)
             ->whereNull('archived_at')
             ->whereHas(
