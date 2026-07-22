@@ -57,6 +57,10 @@ final class CreateReservationAction
                 )->toImmutable()
                 : $reservedAt->add(ReservationPolicy::defaultDuration());
 
+            $expiresAtForStorage = $expiresAt
+                ->utc()
+                ->format('Y-m-d H:i:sP');
+
             Log::debug('Reservation creation expiry input parsed', [
                 'request_expires_at' => $data['expires_at'] ?? null,
                 'application_timezone' => config('app.timezone'),
@@ -72,17 +76,14 @@ final class CreateReservationAction
                 'customer_id' => $customer->id,
                 'status' => ReservationStatus::Active,
                 'reserved_at' => $reservedAt,
-                'expires_at' => $expiresAt,
+                'expires_at' => $expiresAtForStorage,
                 'notes' => $data['notes'] ?? null,
                 'created_by' => $actorId,
                 'updated_by' => $actorId,
             ];
 
             Log::debug('Reservation creation payload before save', [
-                'expires_at' => $reservationData['expires_at']->toISOString(),
-                'expires_at_timezone' => $reservationData['expires_at']
-                    ->getTimezone()
-                    ->getName(),
+                'expires_at' => $reservationData['expires_at'],
             ]);
 
             $reservation = Reservation::query()->create($reservationData);

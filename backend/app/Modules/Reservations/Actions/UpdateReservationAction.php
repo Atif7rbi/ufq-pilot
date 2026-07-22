@@ -27,7 +27,9 @@ final class UpdateReservationAction
                 $data['expires_at'] = Date::parse(
                     $data['expires_at'],
                     config('app.timezone'),
-                )->toImmutable();
+                )
+                    ->utc()
+                    ->format('Y-m-d H:i:sP');
             }
 
             $reservation->fill([
