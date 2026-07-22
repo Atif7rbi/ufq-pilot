@@ -247,7 +247,7 @@ export function UnitFormModal({
         error={formError}
         onSubmit={handleSubmit}
         footer={
-          <ModalFooter className="sticky bottom-0">
+          <ModalFooter>
             <Button
               type="button"
               variant="secondary"
@@ -382,7 +382,7 @@ export function UnitFormModal({
             rows={4}
             value={form.notes}
             onChange={(event) => updateField("notes", event.target.value)}
-            className="w-full resize-y rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--brand-gold)]"
+            className="max-h-48 min-h-28 w-full resize-none overflow-y-auto rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--brand-gold)]"
           />
           {fieldErrors.notes?.[0] ? (
             <p className="mt-2 text-sm font-medium text-[var(--danger)]">

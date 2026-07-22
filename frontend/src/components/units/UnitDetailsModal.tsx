@@ -114,6 +114,7 @@ export function UnitDetailsModal({
       onClose={onClose}
       closeLabel={labels.close}
       maxWidthClassName="max-w-2xl"
+      className="flex max-h-[94vh] flex-col"
     >
       <ModalHeader
         icon={
@@ -126,7 +127,7 @@ export function UnitDetailsModal({
         onClose={onClose}
       />
 
-      <div className="p-5 sm:p-7">
+      <div className="min-h-0 flex-1 overflow-y-auto p-5 sm:p-7">
         {isLoading ? (
           <p className="py-12 text-center text-sm text-[var(--text-secondary)]">
             {labels.loading}
@@ -180,7 +181,7 @@ export function UnitDetailsModal({
               <p className="text-xs font-semibold text-[var(--text-secondary)]">
                 {labels.notes}
               </p>
-              <p className="mt-1 whitespace-pre-wrap text-sm text-[var(--text-primary)]">
+              <p className="mt-1 max-h-48 overflow-y-auto whitespace-pre-wrap text-sm leading-7 text-[var(--text-primary)]">
                 {unit.notes || "—"}
               </p>
             </div>

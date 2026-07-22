@@ -27,19 +27,21 @@ export function FormShell({
     <form
       ref={formRef}
       className={[
-        "min-h-0 flex-1 overflow-y-auto",
+        "min-h-0 flex flex-1 flex-col overflow-hidden",
         className,
       ].join(" ")}
       {...props}
     >
-      <div
-        className={[
-          "space-y-5 px-5 py-6 sm:px-7",
-          bodyClassName,
-        ].join(" ")}
-      >
-        <FormErrorBanner message={error} />
-        {children}
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <div
+          className={[
+            "space-y-5 px-5 py-6 sm:px-7",
+            bodyClassName,
+          ].join(" ")}
+        >
+          <FormErrorBanner message={error} />
+          {children}
+        </div>
       </div>
       {footer}
     </form>
