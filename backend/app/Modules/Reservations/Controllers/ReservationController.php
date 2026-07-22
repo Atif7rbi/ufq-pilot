@@ -7,6 +7,7 @@ namespace App\Modules\Reservations\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Reservations\Actions\CancelReservationAction;
 use App\Modules\Reservations\Actions\CreateReservationAction;
+use App\Modules\Reservations\Actions\ListAvailableReservationUnitsAction;
 use App\Modules\Reservations\Actions\UpdateReservationAction;
 use App\Modules\Reservations\Enums\ReservationStatus;
 use App\Modules\Reservations\Exceptions\ReservationNotActiveException;
@@ -75,6 +76,23 @@ final class ReservationController extends Controller
                 'expired' => (int) $summary->expired,
             ],
         ]]);
+    }
+
+    public function availableUnits(
+        Request $request,
+        ListAvailableReservationUnitsAction $action,
+    ): JsonResponse {
+        $membership = $this->resolveActiveMembership->handle(
+            $request->user(),
+        );
+
+        return response()->json([
+            'data' => [
+                'units' => $action->execute(
+                    (string) $membership->tenant_id,
+                ),
+            ],
+        ]);
     }
 
     public function store(StoreReservationRequest $request, CreateReservationAction $action): JsonResponse

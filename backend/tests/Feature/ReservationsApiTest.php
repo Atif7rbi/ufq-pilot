@@ -37,6 +37,7 @@ final class ReservationsApiTest extends ApiTestCase
     {
         $id = '01J00000000000000000000000';
         $this->getJson('/api/reservations')->assertUnauthorized();
+        $this->getJson('/api/reservations/available-units')->assertUnauthorized();
         $this->postJson('/api/reservations', [])->assertUnauthorized();
         $this->getJson("/api/reservations/{$id}")->assertUnauthorized();
         $this->patchJson("/api/reservations/{$id}", [])->assertUnauthorized();
@@ -231,6 +232,47 @@ final class ReservationsApiTest extends ApiTestCase
         $this->getJson("/api/reservations/{$active}")->assertNotFound();
         $this->patchJson("/api/reservations/{$active}", ['notes' => 'x'])->assertNotFound();
         $this->postJson("/api/reservations/{$active}/cancel")->assertNotFound();
+    }
+
+    public function test_available_units_returns_only_units_eligible_for_reservation(): void
+    {
+        $tenantAUser = $this->createActiveUser();
+        $tenantBUser = $this->createActiveUser();
+        Sanctum::actingAs($tenantAUser);
+
+        $eligibleUnit = $this->createAvailableUnit();
+        $reservedUnit = $this->createAvailableUnit();
+        $this->postJson('/api/reservations', [
+            'unit_id' => $reservedUnit,
+            'customer_id' => $this->createCustomer(),
+        ])->assertCreated();
+
+        $soldUnit = $this->createAvailableUnit();
+        $this->putJson("/api/units/{$soldUnit}", [
+            'status' => 'sold',
+        ])->assertOk();
+
+        $this->createAvailableUnit(false);
+
+        $archivedUnit = $this->createAvailableUnit();
+        $this->postJson("/api/units/{$archivedUnit}/archive")
+            ->assertOk();
+
+        Sanctum::actingAs($tenantBUser);
+        $this->createAvailableUnit();
+
+        Sanctum::actingAs($tenantAUser);
+        $this->getJson('/api/reservations/available-units')
+            ->assertOk()
+            ->assertJsonCount(1, 'data.units')
+            ->assertJsonPath('data.units.0.id', $eligibleUnit)
+            ->assertJsonStructure([
+                'data' => [
+                    'units' => [
+                        ['id', 'unit_number', 'project_name'],
+                    ],
+                ],
+            ]);
     }
 
     private function createReservation(): string
