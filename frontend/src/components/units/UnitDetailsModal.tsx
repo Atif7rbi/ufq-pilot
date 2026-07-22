@@ -78,13 +78,15 @@ export function UnitDetailsModal({
       }[unit.unit_type]
     : "";
 
+  const projectLabel = unit?.project
+    ? `${unit.project.project_number} — ${unit.project.name}`
+    : "—";
+
   const details = unit
     ? [
         {
           label: labels.project,
-          value: unit.project
-            ? `${unit.project.project_number} — ${unit.project.name}`
-            : unit.project_id,
+          value: projectLabel,
         },
         { label: labels.number, value: unit.unit_number },
         { label: labels.type, value: typeLabel },
@@ -141,7 +143,7 @@ export function UnitDetailsModal({
                   {unit.unit_number}
                 </p>
                 <p className="mt-1 text-sm text-[var(--text-secondary)]">
-                  {unit.project?.name ?? unit.project_id}
+                  {projectLabel}
                 </p>
               </div>
               <div className="flex gap-2">

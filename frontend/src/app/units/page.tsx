@@ -193,7 +193,12 @@ export default function UnitsPage() {
     setDetailError(null);
 
     try {
-      setDetailUnit(await fetchUnit(token, unit.id));
+      const detailedUnit = await fetchUnit(token, unit.id);
+
+      setDetailUnit({
+        ...detailedUnit,
+        project: detailedUnit.project ?? unit.project,
+      });
     } catch (caughtError) {
       setDetailError(
         caughtError instanceof Error
