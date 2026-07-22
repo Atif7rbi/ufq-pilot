@@ -1,4 +1,7 @@
-import { parseApiError } from "@/lib/api-error";
+import {
+  createQueryString,
+  requestJson,
+} from "@/lib/http";
 import type {
   Unit,
   UnitFormPayload,
@@ -6,75 +9,33 @@ import type {
   UnitsResponse,
 } from "@/types/unit";
 
-function getApiBaseUrl(): string {
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
-
-  if (!apiBaseUrl) {
-    throw new Error(
-      "NEXT_PUBLIC_API_BASE_URL is not configured."
-    );
-  }
-
-  return apiBaseUrl;
-}
-
-function getHeaders(token: string): HeadersInit {
-  return {
-    Accept: "application/json",
-    "Content-Type": "application/json",
-    Authorization: `Bearer ${token}`,
-  };
-}
+export type UnitsQuery = {
+  page?: number;
+  per_page?: number;
+  search?: string;
+  project_id?: string;
+  unit_type?: string;
+  status?: string;
+  archived?: boolean;
+};
 
 export async function fetchUnits(
   token: string,
-  params: {
-    page?: number;
-    per_page?: number;
-    search?: string;
-    project_id?: string;
-    unit_type?: string;
-    status?: string;
-    archived?: boolean;
-  } = {}
+  params: UnitsQuery = {}
 ): Promise<UnitsResponse> {
-  const query = new URLSearchParams();
+  const query = createQueryString(params);
+  const path = query ? `/units?${query}` : "/units";
 
-  Object.entries(params).forEach(([key, value]) => {
-    if (value !== undefined && value !== "") {
-      query.set(key, String(value));
-    }
-  });
-
-  const response = await fetch(
-    `${getApiBaseUrl()}/units?${query.toString()}`,
-    {
-      headers: getHeaders(token),
-      cache: "no-store",
-    }
-  );
-
-  if (!response.ok) {
-    throw await parseApiError(response);
-  }
-
-  return (await response.json()) as UnitsResponse;
+  return requestJson<UnitsResponse>(path, { token });
 }
 
 export async function fetchUnit(
   token: string,
   unitId: string
 ): Promise<Unit> {
-  const response = await fetch(
-    `${getApiBaseUrl()}/units/${unitId}`,
-    { headers: getHeaders(token) }
-  );
-
-  if (!response.ok) {
-    throw await parseApiError(response);
-  }
-
-  const result = (await response.json()) as UnitResponse;
+  const result = await requestJson<UnitResponse>(`/units/${unitId}`, {
+    token,
+  });
 
   return result.data.unit;
 }
@@ -83,17 +44,11 @@ export async function createUnit(
   token: string,
   payload: UnitFormPayload
 ): Promise<Unit> {
-  const response = await fetch(`${getApiBaseUrl()}/units`, {
+  const result = await requestJson<UnitResponse>("/units", {
+    token,
     method: "POST",
-    headers: getHeaders(token),
-    body: JSON.stringify(payload),
+    body: payload,
   });
-
-  if (!response.ok) {
-    throw await parseApiError(response);
-  }
-
-  const result = (await response.json()) as UnitResponse;
 
   return result.data.unit;
 }
@@ -103,20 +58,11 @@ export async function updateUnit(
   unitId: string,
   payload: UnitFormPayload
 ): Promise<Unit> {
-  const response = await fetch(
-    `${getApiBaseUrl()}/units/${unitId}`,
-    {
-      method: "PUT",
-      headers: getHeaders(token),
-      body: JSON.stringify(payload),
-    }
-  );
-
-  if (!response.ok) {
-    throw await parseApiError(response);
-  }
-
-  const result = (await response.json()) as UnitResponse;
+  const result = await requestJson<UnitResponse>(`/units/${unitId}`, {
+    token,
+    method: "PUT",
+    body: payload,
+  });
 
   return result.data.unit;
 }
@@ -126,19 +72,13 @@ async function changeArchiveState(
   unitId: string,
   action: "archive" | "restore"
 ): Promise<Unit> {
-  const response = await fetch(
-    `${getApiBaseUrl()}/units/${unitId}/${action}`,
+  const result = await requestJson<UnitResponse>(
+    `/units/${unitId}/${action}`,
     {
+      token,
       method: "POST",
-      headers: getHeaders(token),
     }
   );
-
-  if (!response.ok) {
-    throw await parseApiError(response);
-  }
-
-  const result = (await response.json()) as UnitResponse;
 
   return result.data.unit;
 }

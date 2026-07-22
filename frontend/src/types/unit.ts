@@ -1,3 +1,5 @@
+import type { PaginatedData } from "@/types/pagination";
+
 export type UnitType =
   | "apartment"
   | "villa"
@@ -47,13 +49,7 @@ export type UnitFormPayload = {
   notes?: string | null;
 };
 
-export type UnitPagination = {
-  current_page: number;
-  data: Unit[];
-  last_page: number;
-  per_page: number;
-  total: number;
-};
+export type UnitPagination = PaginatedData<Unit>;
 
 export type UnitSummary = {
   total: number;
