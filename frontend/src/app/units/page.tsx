@@ -291,6 +291,15 @@ export default function UnitsPage() {
       archiveFilter !== "active"
   );
 
+  const resetFilters = (): void => {
+    setSearch("");
+    setProjectFilter("all");
+    setTypeFilter("all");
+    setStatusFilter("all");
+    setArchiveFilter("active");
+    setPage(1);
+  };
+
   return (
     <AppShell>
       <CrudPageLayout>
@@ -343,7 +352,7 @@ export default function UnitsPage() {
               />
             }
           >
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(220px,1fr)_180px_150px_150px_150px_auto]">
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(220px,1fr)_180px_150px_150px_150px_auto_auto]">
               <div className="relative">
                 <Search
                   size={17}
@@ -435,6 +444,16 @@ export default function UnitsPage() {
                 />
                 تحديث
               </Button>
+
+              {hasFilters ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={resetFilters}
+                >
+                  إعادة تعيين الفلاتر
+                </Button>
+              ) : null}
             </div>
           </FilterBar>
         </CrudSection>
@@ -468,16 +487,29 @@ export default function UnitsPage() {
               title="لا توجد وحدات"
               description={
                 hasFilters
-                  ? "لا توجد وحدات تطابق الفلاتر الحالية."
+                  ? "لا توجد وحدات مطابقة للفلاتر الحالية."
                   : "ابدأ بإضافة أول وحدة داخل المشروع."
+              }
+              action={
+                hasFilters ? (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={resetFilters}
+                  >
+                    مسح الفلاتر
+                  </Button>
+                ) : undefined
               }
             />
           ) : (
-            <DataTable minWidth="1050px">
+            <DataTable minWidth="1200px">
               <thead className="border-b border-[var(--border)] text-xs text-[var(--text-secondary)]">
                 <tr>
                   <th className="px-3 py-3">رقم الوحدة</th>
                   <th className="px-3 py-3">المشروع</th>
+                  <th className="px-3 py-3">الطابق</th>
+                  <th className="px-3 py-3">المساحة</th>
                   <th className="px-3 py-3">النوع</th>
                   <th className="px-3 py-3">السعر</th>
                   <th className="px-3 py-3">الوصف</th>
@@ -501,6 +533,12 @@ export default function UnitsPage() {
                     </td>
                     <td className="px-3 py-4 text-sm text-[var(--text-secondary)]">
                       {unit.project?.name ?? "—"}
+                    </td>
+                    <td className="px-3 py-4 text-sm text-[var(--text-secondary)]">
+                      {unit.floor ?? "—"}
+                    </td>
+                    <td className="px-3 py-4 text-sm text-[var(--text-secondary)]">
+                      {unit.area ?? "—"}
                     </td>
                     <td className="px-3 py-4 text-sm text-[var(--text-secondary)]">
                       {typeLabels[unit.unit_type]}

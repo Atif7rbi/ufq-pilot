@@ -8,6 +8,7 @@ type ListEmptyStateProps = {
   icon: ComponentType<{ size?: number; className?: string }>;
   title: string;
   description: string;
+  action?: ReactNode;
 };
 
 type ListErrorStateProps = {
@@ -34,6 +35,7 @@ export function ListEmptyState({
   icon: Icon,
   title,
   description,
+  action,
 }: ListEmptyStateProps) {
   return (
     <div className="flex min-h-72 items-center justify-center px-6 text-center">
@@ -48,6 +50,7 @@ export function ListEmptyState({
         <p className="mt-2 text-sm text-[var(--text-secondary)]">
           {description}
         </p>
+        {action ? <div className="mt-5">{action}</div> : null}
       </div>
     </div>
   );
