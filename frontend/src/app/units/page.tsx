@@ -15,7 +15,6 @@ import {
   useCallback,
   useEffect,
   useState,
-  type CSSProperties,
 } from "react";
 
 import { AppShell } from "@/components/layout/AppShell";
@@ -717,33 +716,29 @@ function UnitDescriptionCell({
     return "—";
   }
 
-  const previewStyle: CSSProperties = {
-    display: "-webkit-box",
-    WebkitBoxOrient: "vertical",
-    WebkitLineClamp: 2,
-    overflow: "hidden",
-    lineHeight: "1.5rem",
-    maxHeight: "3rem",
-  };
+  const normalizedDescription = description.replace(/\s+/g, " ").trim();
+  const previewLimit = 90;
+  const isTruncated = normalizedDescription.length > previewLimit;
+  const preview = isTruncated
+    ? `${normalizedDescription.slice(0, previewLimit).trimEnd()}…`
+    : normalizedDescription;
 
   return (
     <>
       <span
-        title={description}
-        className="hidden max-w-64 whitespace-pre-wrap md:block"
-        style={previewStyle}
+        title={isTruncated ? description : undefined}
+        className="hidden max-h-12 max-w-64 overflow-hidden break-words text-sm leading-6 md:block"
       >
-        {description}
+        {preview}
       </span>
 
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="block max-w-52 text-start md:hidden"
-        style={previewStyle}
+        className="block max-h-12 max-w-52 overflow-hidden break-words text-start text-sm leading-6 md:hidden"
         aria-label="عرض الوصف كاملًا"
       >
-        {description}
+        {preview}
       </button>
 
       {isOpen ? (
