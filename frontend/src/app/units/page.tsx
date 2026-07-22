@@ -473,13 +473,14 @@ export default function UnitsPage() {
               }
             />
           ) : (
-            <DataTable>
+            <DataTable minWidth="1050px">
               <thead className="border-b border-[var(--border)] text-xs text-[var(--text-secondary)]">
                 <tr>
                   <th className="px-3 py-3">رقم الوحدة</th>
                   <th className="px-3 py-3">المشروع</th>
                   <th className="px-3 py-3">النوع</th>
                   <th className="px-3 py-3">السعر</th>
+                  <th className="px-3 py-3">الوصف</th>
                   <th className="px-3 py-3">الحالة</th>
                   <th className="px-3 py-3">الإجراءات</th>
                 </tr>
@@ -509,6 +510,9 @@ export default function UnitsPage() {
                         maximumFractionDigits: 2,
                       }).format(Number(unit.selling_price))}{" "}
                       {unit.project?.currency ?? ""}
+                    </td>
+                    <td className="px-3 py-4 text-sm text-[var(--text-secondary)]">
+                      <UnitDescriptionCell description={unit.notes} />
                     </td>
                     <td className="px-3 py-4">
                       <span
@@ -656,5 +660,82 @@ export default function UnitsPage() {
         onConfirm={() => void confirmAction()}
       />
     </AppShell>
+  );
+}
+
+function UnitDescriptionCell({
+  description,
+}: {
+  description: string | null;
+}) {
+  const [isOpen, setOpen] = useState(false);
+
+  if (!description?.trim()) {
+    return "—";
+  }
+
+  const isLong = description.length > 90;
+
+  return (
+    <>
+      <span
+        title={isLong ? description : undefined}
+        className={[
+          "hidden max-w-64 md:block",
+          isLong ? "line-clamp-2" : "whitespace-pre-wrap",
+        ].join(" ")}
+      >
+        {description}
+      </span>
+
+      {isLong ? (
+        <>
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            className="line-clamp-2 block max-w-52 text-start md:hidden"
+            aria-label="عرض الوصف كاملًا"
+          >
+            {description}
+          </button>
+
+          {isOpen ? (
+            <div className="fixed inset-0 z-[90] flex items-center justify-center p-4 md:hidden">
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                aria-label="إغلاق"
+                className="absolute inset-0 bg-slate-950/55"
+              />
+              <div
+                role="dialog"
+                aria-modal="true"
+                aria-label="الوصف"
+                className="relative w-full max-w-md rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[var(--shadow-lg)]"
+              >
+                <h3 className="text-base font-bold text-[var(--text-primary)]">
+                  الوصف
+                </h3>
+                <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-[var(--text-secondary)]">
+                  {description}
+                </p>
+                <div className="mt-5 flex justify-end">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setOpen(false)}
+                  >
+                    إغلاق
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ) : null}
+        </>
+      ) : (
+        <span className="whitespace-pre-wrap md:hidden">{description}</span>
+      )}
+    </>
   );
 }
