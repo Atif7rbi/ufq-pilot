@@ -9,6 +9,7 @@ import {
 import { useAuth } from "@/providers/AuthProvider";
 import { fetchCustomers } from "@/services/customers";
 import { fetchProjects } from "@/services/projects";
+import { fetchUnits } from "@/services/units";
 import type { Project } from "@/types/project";
 
 type DashboardData = {
@@ -16,6 +17,7 @@ type DashboardData = {
   recentProjects: Project[];
   totalProjects: number;
   totalCustomers: number | null;
+  totalUnits: number | null;
   isLoading: boolean;
   error: string | null;
   refresh: () => Promise<void>;
@@ -28,6 +30,7 @@ export function useDashboard(): DashboardData {
   const [totalProjects, setTotalProjects] = useState(0);
   const [totalCustomers, setTotalCustomers] =
     useState<number | null>(null);
+  const [totalUnits, setTotalUnits] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -39,12 +42,14 @@ export function useDashboard(): DashboardData {
     setIsLoading(true);
     setError(null);
     setTotalCustomers(null);
+    setTotalUnits(null);
 
     try {
-      const [projectsResponse, customersResponse] =
+      const [projectsResponse, customersResponse, unitsResponse] =
         await Promise.all([
           fetchProjects(token, { perPage: 5 }),
           fetchCustomers(token, { per_page: 1 }),
+          fetchUnits(token, { per_page: 1 }),
         ]);
 
       setProjects(projectsResponse.data.data);
@@ -52,6 +57,7 @@ export function useDashboard(): DashboardData {
       setTotalCustomers(
         customersResponse.data.summary.total
       );
+      setTotalUnits(unitsResponse.data.summary.total);
     } catch (caughtError) {
       setError(
         caughtError instanceof Error
@@ -73,8 +79,9 @@ export function useDashboard(): DashboardData {
     Promise.all([
       fetchProjects(token, { perPage: 5 }),
       fetchCustomers(token, { per_page: 1 }),
+      fetchUnits(token, { per_page: 1 }),
     ])
-      .then(([projectsResponse, customersResponse]) => {
+      .then(([projectsResponse, customersResponse, unitsResponse]) => {
         if (isCancelled) {
           return;
         }
@@ -84,6 +91,7 @@ export function useDashboard(): DashboardData {
         setTotalCustomers(
           customersResponse.data.summary.total
         );
+        setTotalUnits(unitsResponse.data.summary.total);
         setError(null);
       })
       .catch((caughtError: unknown) => {
@@ -113,6 +121,7 @@ export function useDashboard(): DashboardData {
     recentProjects: projects,
     totalProjects,
     totalCustomers,
+    totalUnits,
     isLoading,
     error,
     refresh: loadDashboard,

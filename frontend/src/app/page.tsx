@@ -65,8 +65,26 @@ export default function HomePage() {
     },
     {
       label: t("dashboard.stats.units"),
-      value: "—",
-      description: t("dashboard.stats.noUnits"),
+      value:
+        dashboard.totalUnits === null
+          ? "—"
+          : new Intl.NumberFormat("en-US").format(
+              dashboard.totalUnits
+            ),
+      description:
+        dashboard.totalUnits === null
+          ? dashboard.error
+            ? isArabic
+              ? "تعذر تحميل الوحدات"
+              : "Unable to load units"
+            : isArabic
+              ? "جارٍ تحميل الوحدات"
+              : "Loading units"
+          : dashboard.totalUnits > 0
+          ? isArabic
+            ? "إجمالي الوحدات المسجلة"
+            : "Total registered units"
+          : t("dashboard.stats.noUnits"),
       icon: Building2,
       tone: "green" as const,
       href: "/units/",
