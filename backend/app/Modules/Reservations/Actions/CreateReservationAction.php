@@ -48,12 +48,12 @@ final class CreateReservationAction
                 throw new ReservationUnitUnavailableException();
             }
 
-            $reservedAt = Date::now()->toImmutable();
+            $reservedAt = Date::now()->toImmutable()->utc();
             $expiresAt = isset($data['expires_at'])
                 ? Date::parse(
                     $data['expires_at'],
                     config('app.timezone'),
-                )->toImmutable()
+                )->toImmutable()->utc()
                 : $reservedAt->add(ReservationPolicy::defaultDuration());
 
             return Reservation::query()->create([
