@@ -56,6 +56,7 @@ import type {
   ReservationFormPayload,
   ReservationStatus,
   ReservationSummary,
+  ReservationUpdatePayload,
 } from "@/types/reservation";
 
 const emptySummary: ReservationSummary = {
@@ -123,9 +124,9 @@ export default function ReservationsPage() {
         });
 
         setReservations(response.data.reservations.data);
-        setPage(response.data.reservations.current_page);
-        setLastPage(response.data.reservations.last_page);
-        setTotal(response.data.reservations.total);
+        setPage(response.data.reservations.meta.current_page);
+        setLastPage(response.data.reservations.meta.last_page);
+        setTotal(response.data.reservations.meta.total);
         setSummary(response.data.summary);
       } catch (caughtError) {
         setError(

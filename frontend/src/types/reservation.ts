@@ -1,5 +1,4 @@
 import type { Customer } from "@/types/customer";
-import type { PaginatedData } from "@/types/pagination";
 import type { Unit } from "@/types/unit";
 
 export type ReservationStatus = "active" | "cancelled" | "expired";
@@ -24,7 +23,15 @@ export type Reservation = {
   customer?: Customer;
 };
 
-export type ReservationPagination = PaginatedData<Reservation>;
+export type ReservationPagination = {
+  data: Reservation[];
+  meta: {
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+  };
+};
 
 export type ReservationSummary = {
   total: number;
