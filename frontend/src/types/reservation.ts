@@ -33,6 +33,19 @@ export type ReservationSummary = {
   expired: number;
 };
 
+export type AvailableReservationUnit = {
+  id: string;
+  unit_number: string;
+  project_name: string;
+};
+
+export type ReservationFormPayload = {
+  unit_id: string;
+  customer_id: string;
+  expires_at?: string;
+  notes?: string | null;
+};
+
 export type ReservationsResponse = {
   data: {
     reservations: ReservationPagination;
@@ -40,3 +53,15 @@ export type ReservationsResponse = {
   };
 };
 
+export type AvailableReservationUnitsResponse = {
+  data: {
+    units: AvailableReservationUnit[];
+  };
+};
+
+export type ReservationResponse = {
+  message?: string;
+  data: {
+    reservation: Reservation;
+  };
+};

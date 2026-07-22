@@ -3,6 +3,7 @@
 import {
   CalendarCheck2,
   Filter,
+  Plus,
   RefreshCw,
   Search,
 } from "lucide-react";
@@ -13,6 +14,7 @@ import {
 } from "react";
 
 import { AppShell } from "@/components/layout/AppShell";
+import { ReservationFormModal } from "@/components/reservations/ReservationFormModal";
 import { Button } from "@/components/ui/Button";
 import {
   CrudPageHeader,
@@ -30,10 +32,18 @@ import { Pagination } from "@/components/ui/crud/Pagination";
 import { SummaryCard } from "@/components/ui/crud/SummaryCard";
 import { useAuth } from "@/providers/AuthProvider";
 import { fetchProjects } from "@/services/projects";
-import { fetchReservations } from "@/services/reservations";
+import { fetchCustomers } from "@/services/customers";
+import {
+  createReservation,
+  fetchAvailableReservationUnits,
+  fetchReservations,
+} from "@/services/reservations";
+import type { Customer } from "@/types/customer";
 import type { Project } from "@/types/project";
 import type {
   Reservation,
+  AvailableReservationUnit,
+  ReservationFormPayload,
   ReservationStatus,
   ReservationSummary,
 } from "@/types/reservation";
@@ -70,6 +80,11 @@ export default function ReservationsPage() {
   const [projectFilter, setProjectFilter] = useState("all");
   const [isLoading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isFormOpen, setFormOpen] = useState(false);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [availableUnits, setAvailableUnits] = useState<AvailableReservationUnit[]>([]);
+  const [isLoadingOptions, setLoadingOptions] = useState(false);
+  const [isSubmitting, setSubmitting] = useState(false);
 
   const loadReservations = useCallback(
     async (targetPage = page): Promise<void> => {
@@ -155,6 +170,56 @@ export default function ReservationsPage() {
     setPage(1);
   };
 
+  const openCreateForm = async (): Promise<void> => {
+    if (!token) {
+      return;
+    }
+
+    setFormOpen(true);
+    setLoadingOptions(true);
+
+    try {
+      const [unitOptions, customerResponse] = await Promise.all([
+        fetchAvailableReservationUnits(token),
+        fetchCustomers(token, { per_page: 100 }),
+      ]);
+
+      setAvailableUnits(unitOptions);
+      setCustomers(
+        customerResponse.data.customers.data.filter(
+          (customer) =>
+            customer.status !== "archived" && customer.archived_at === null
+        )
+      );
+    } catch (caughtError) {
+      setError(
+        caughtError instanceof Error
+          ? caughtError.message
+          : "تعذر تحميل خيارات الحجز."
+      );
+    } finally {
+      setLoadingOptions(false);
+    }
+  };
+
+  const submitCreateForm = async (
+    payload: ReservationFormPayload
+  ): Promise<void> => {
+    if (!token) {
+      return;
+    }
+
+    setSubmitting(true);
+
+    try {
+      await createReservation(token, payload);
+      await loadReservations(1);
+      setFormOpen(false);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <AppShell>
       <CrudPageLayout>
@@ -162,6 +227,16 @@ export default function ReservationsPage() {
           icon={CalendarCheck2}
           title="الحجوزات"
           description="متابعة حجوزات الوحدات وحالتها"
+          action={
+            <Button
+              type="button"
+              onClick={() => void openCreateForm()}
+              className="gap-2 !bg-[var(--brand-gold)] !text-white hover:!bg-[var(--brand-gold-strong)]"
+            >
+              <Plus size={18} />
+              إضافة حجز
+            </Button>
+          }
         />
 
         <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -287,6 +362,22 @@ export default function ReservationsPage() {
           />
         </CrudSection>
       </CrudPageLayout>
+
+      {isFormOpen ? (
+        <ReservationFormModal
+          isOpen
+          customers={customers}
+          units={availableUnits}
+          isLoadingOptions={isLoadingOptions}
+          isSubmitting={isSubmitting}
+          onClose={() => {
+            if (!isSubmitting) {
+              setFormOpen(false);
+            }
+          }}
+          onSubmit={submitCreateForm}
+        />
+      ) : null}
     </AppShell>
   );
 }
