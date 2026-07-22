@@ -19,6 +19,7 @@ use App\Modules\Reservations\Resources\ReservationResource;
 use App\Modules\Shared\Services\ResolveActiveMembership;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -85,6 +86,15 @@ final class ReservationController extends Controller
         } catch (ReservationUnitUnavailableException $exception) {
             $this->throwValidationException('unit_id', $exception->getMessage());
         }
+
+        Log::debug('Reservation store model before resource', [
+            'reservation_id' => $reservation->id,
+            'reserved_at' => $reservation->reserved_at?->toISOString(),
+            'expires_at' => $reservation->expires_at?->toISOString(),
+            'created_at' => $reservation->created_at?->toISOString(),
+            'updated_at' => $reservation->updated_at?->toISOString(),
+        ]);
+
         return response()->json([
             'message' => 'تم إنشاء الحجز بنجاح.',
             'data' => ['reservation' => (new ReservationResource($reservation))->resolve()],
