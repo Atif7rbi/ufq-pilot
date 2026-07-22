@@ -8,6 +8,7 @@ import type {
   Reservation,
   ReservationFormPayload,
   ReservationResponse,
+  ReservationUpdatePayload,
   ReservationsResponse,
 } from "@/types/reservation";
 
@@ -62,6 +63,23 @@ export async function fetchReservation(
   const result = await requestJson<ReservationResponse>(
     `/reservations/${reservationId}`,
     { token }
+  );
+
+  return result.data.reservation;
+}
+
+export async function updateReservation(
+  token: string,
+  reservationId: string,
+  payload: ReservationUpdatePayload
+): Promise<Reservation> {
+  const result = await requestJson<ReservationResponse>(
+    `/reservations/${reservationId}`,
+    {
+      token,
+      method: "PATCH",
+      body: payload,
+    }
   );
 
   return result.data.reservation;

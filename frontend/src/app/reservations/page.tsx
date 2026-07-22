@@ -2,6 +2,7 @@
 
 import {
   CalendarCheck2,
+  Edit3,
   Eye,
   Filter,
   Plus,
@@ -17,6 +18,7 @@ import {
 import { AppShell } from "@/components/layout/AppShell";
 import { ReservationFormModal } from "@/components/reservations/ReservationFormModal";
 import { ReservationDetailsModal } from "@/components/reservations/ReservationDetailsModal";
+import { ReservationUpdateModal } from "@/components/reservations/ReservationUpdateModal";
 import { Button } from "@/components/ui/Button";
 import {
   CrudPageHeader,
@@ -40,6 +42,7 @@ import {
   fetchAvailableReservationUnits,
   fetchReservation,
   fetchReservations,
+  updateReservation,
 } from "@/services/reservations";
 import type { Customer } from "@/types/customer";
 import type { Project } from "@/types/project";
@@ -91,6 +94,7 @@ export default function ReservationsPage() {
   const [detailReservation, setDetailReservation] = useState<Reservation | null>(null);
   const [isDetailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
+  const [editReservation, setEditReservation] = useState<Reservation | null>(null);
 
   const loadReservations = useCallback(
     async (targetPage = page): Promise<void> => {
@@ -248,6 +252,24 @@ export default function ReservationsPage() {
     }
   };
 
+  const submitUpdateForm = async (
+    payload: ReservationUpdatePayload
+  ): Promise<void> => {
+    if (!token || !editReservation) {
+      return;
+    }
+
+    setSubmitting(true);
+
+    try {
+      await updateReservation(token, editReservation.id, payload);
+      await loadReservations();
+      setEditReservation(null);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <AppShell>
       <CrudPageLayout>
@@ -381,6 +403,16 @@ export default function ReservationsPage() {
                       >
                         <Eye size={17} />
                       </button>
+                      {reservation.status === "active" ? (
+                        <button
+                          type="button"
+                          onClick={() => setEditReservation(reservation)}
+                          className="rounded-lg p-2 text-[var(--brand-gold-strong)] hover:bg-[var(--brand-gold-soft)]"
+                          aria-label="تعديل الحجز"
+                        >
+                          <Edit3 size={17} />
+                        </button>
+                      ) : null}
                     </td>
                   </tr>
                 ))}
@@ -426,6 +458,18 @@ export default function ReservationsPage() {
           setDetailReservation(null);
           setDetailError(null);
         }}
+      />
+
+      <ReservationUpdateModal
+        key={editReservation?.id ?? "reservation-update"}
+        reservation={editReservation}
+        isSubmitting={isSubmitting}
+        onClose={() => {
+          if (!isSubmitting) {
+            setEditReservation(null);
+          }
+        }}
+        onSubmit={submitUpdateForm}
       />
     </AppShell>
   );

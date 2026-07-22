@@ -46,6 +46,11 @@ export type ReservationFormPayload = {
   notes?: string | null;
 };
 
+export type ReservationUpdatePayload = {
+  expires_at?: string;
+  notes?: string | null;
+};
+
 export type ReservationsResponse = {
   data: {
     reservations: ReservationPagination;
