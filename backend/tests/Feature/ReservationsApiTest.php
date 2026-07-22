@@ -193,8 +193,13 @@ final class ReservationsApiTest extends ApiTestCase
             'expires_at' => '2026-07-22 10:01:00',
         ])->assertCreated()->json('data.reservation.id');
 
-        $this->travelTo('2026-07-22 10:02:00');
-        (new ExpireReservations)->handle(app(\App\Modules\Reservations\Actions\ExpireReservationAction::class));
+        (new ExpireReservations)->expireAt(
+            app(\App\Modules\Reservations\Actions\ExpireReservationAction::class),
+            Carbon::parse(
+                '2026-07-22 10:02:00',
+                config('app.timezone'),
+            ),
+        );
 
         $this->assertDatabaseHas('reservations', ['id' => $reservationId, 'status' => 'expired']);
         $this->postJson('/api/reservations', ['unit_id' => $unitId, 'customer_id' => $this->createCustomer()])

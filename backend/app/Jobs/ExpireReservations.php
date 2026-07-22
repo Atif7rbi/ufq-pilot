@@ -7,6 +7,7 @@ namespace App\Jobs;
 use App\Modules\Reservations\Actions\ExpireReservationAction;
 use App\Modules\Reservations\Enums\ReservationStatus;
 use App\Modules\Reservations\Models\Reservation;
+use Carbon\CarbonInterface;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 
@@ -16,7 +17,14 @@ final class ExpireReservations implements ShouldQueue
 
     public function handle(ExpireReservationAction $action): void
     {
-        $expiredAt = now();
+        $this->expireAt($action, now());
+    }
+
+    public function expireAt(
+        ExpireReservationAction $action,
+        CarbonInterface $expiredAt,
+    ): void
+    {
 
         Reservation::query()
             ->where('status', ReservationStatus::Active->value)
