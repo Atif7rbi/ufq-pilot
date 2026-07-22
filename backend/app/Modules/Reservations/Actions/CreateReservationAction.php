@@ -15,6 +15,7 @@ use App\Modules\Units\Enums\UnitStatus;
 use App\Modules\Units\Models\Unit;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Date;
+use Illuminate\Support\Facades\Log;
 
 final class CreateReservationAction
 {
@@ -56,7 +57,16 @@ final class CreateReservationAction
                 )->toImmutable()
                 : $reservedAt->add(ReservationPolicy::defaultDuration());
 
-            return Reservation::query()->create([
+            Log::debug('Reservation creation expiry input parsed', [
+                'request_expires_at' => $data['expires_at'] ?? null,
+                'application_timezone' => config('app.timezone'),
+                'reserved_at' => $reservedAt->toISOString(),
+                'reserved_at_timezone' => $reservedAt->getTimezone()->getName(),
+                'expires_at_parsed' => $expiresAt->toISOString(),
+                'expires_at_timezone' => $expiresAt->getTimezone()->getName(),
+            ]);
+
+            $reservationData = [
                 'tenant_id' => $tenantId,
                 'unit_id' => $unit->id,
                 'customer_id' => $customer->id,
@@ -66,7 +76,29 @@ final class CreateReservationAction
                 'notes' => $data['notes'] ?? null,
                 'created_by' => $actorId,
                 'updated_by' => $actorId,
+            ];
+
+            Log::debug('Reservation creation payload before save', [
+                'expires_at' => $reservationData['expires_at']->toISOString(),
+                'expires_at_timezone' => $reservationData['expires_at']
+                    ->getTimezone()
+                    ->getName(),
             ]);
+
+            $reservation = Reservation::query()->create($reservationData);
+
+            Log::debug('Reservation creation persisted', [
+                'reservation_id' => $reservation->id,
+                'model_expires_at' => $reservation->expires_at->toISOString(),
+                'model_expires_at_timezone' => $reservation->expires_at
+                    ->getTimezone()
+                    ->getName(),
+                'database_expires_at' => DB::table('reservations')
+                    ->where('id', $reservation->id)
+                    ->value('expires_at'),
+            ]);
+
+            return $reservation;
         });
     }
 }
