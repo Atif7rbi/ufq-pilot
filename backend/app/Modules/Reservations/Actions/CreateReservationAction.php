@@ -15,7 +15,6 @@ use App\Modules\Units\Enums\UnitStatus;
 use App\Modules\Units\Models\Unit;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Date;
-use Illuminate\Support\Facades\Log;
 
 final class CreateReservationAction
 {
@@ -67,37 +66,6 @@ final class CreateReservationAction
                 'notes' => $data['notes'] ?? null,
                 'created_by' => $actorId,
                 'updated_by' => $actorId,
-            ]);
-
-            $rawExpiresAt = DB::selectOne(
-                'select expires_at from reservations where id = ?',
-                [$reservation->id],
-            );
-
-            $utcExpiresAt = DB::selectOne(
-                "select expires_at, expires_at at time zone 'UTC' as expires_at_utc from reservations where id = ?",
-                [$reservation->id],
-            );
-
-            $timezone = DB::selectOne(
-                "select current_setting('TIMEZONE') as timezone",
-            );
-
-            $freshReservation = Reservation::query()
-                ->findOrFail($reservation->id);
-
-            Log::debug('Reservation creation UTC verification', [
-                'reservation_id' => $reservation->id,
-                'expires_at' => $rawExpiresAt->expires_at,
-                'expires_at_utc' => $utcExpiresAt->expires_at_utc,
-                'database_timezone' => $timezone->timezone,
-                'model_raw_original' => $freshReservation
-                    ->getRawOriginal('expires_at'),
-                'model_cast' => $freshReservation->expires_at
-                    ->toISOString(),
-                'model_cast_timezone' => $freshReservation->expires_at
-                    ->getTimezone()
-                    ->getName(),
             ]);
 
             return $reservation;

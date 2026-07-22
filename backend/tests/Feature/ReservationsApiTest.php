@@ -57,6 +57,9 @@ final class ReservationsApiTest extends ApiTestCase
             'tenant_id' => '01J00000000000000000000000',
         ]);
 
+        dump($response->json('data.reservation.expires_at'));
+        dump($response->getContent());
+
         $response->assertCreated()
             ->assertJsonPath('message', 'تم إنشاء الحجز بنجاح.')
             ->assertJsonPath('data.reservation.unit_id', $unitId)
