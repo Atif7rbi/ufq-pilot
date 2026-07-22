@@ -17,7 +17,7 @@ final class ExpireReservationAction
         CarbonInterface $expiredAt,
     ): void
     {
-        DB::transaction(function () use ($reservationId): void {
+        DB::transaction(function () use ($reservationId, $expiredAt): void {
             $reservation = Reservation::query()->whereKey($reservationId)->lockForUpdate()->firstOrFail();
 
             Unit::query()->whereKey($reservation->unit_id)->lockForUpdate()->firstOrFail();
