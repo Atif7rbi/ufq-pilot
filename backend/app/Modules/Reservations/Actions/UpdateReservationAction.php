@@ -7,8 +7,8 @@ namespace App\Modules\Reservations\Actions;
 use App\Modules\Reservations\Enums\ReservationStatus;
 use App\Modules\Reservations\Exceptions\ReservationNotActiveException;
 use App\Modules\Reservations\Models\Reservation;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Date;
 
 final class UpdateReservationAction
 {
@@ -24,10 +24,10 @@ final class UpdateReservationAction
             }
 
             if (array_key_exists('expires_at', $data)) {
-                $data['expires_at'] = Date::parse(
+                $data['expires_at'] = Carbon::parse(
                     $data['expires_at'],
                     config('app.timezone'),
-                )->toImmutable()->utc();
+                )->utc();
             }
 
             $reservation->fill([
