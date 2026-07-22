@@ -24,12 +24,12 @@ final class ReservationsApiTest extends ApiTestCase
     protected function setUp(): void
     {
         parent::setUp();
-        Carbon::setTestNow('2026-07-22 10:00:00');
+        $this->travelTo('2026-07-22 10:00:00');
     }
 
     protected function tearDown(): void
     {
-        Carbon::setTestNow();
+        $this->travelBack();
         parent::tearDown();
     }
 
@@ -193,7 +193,7 @@ final class ReservationsApiTest extends ApiTestCase
             'expires_at' => '2026-07-22 10:01:00',
         ])->assertCreated()->json('data.reservation.id');
 
-        Carbon::setTestNow('2026-07-22 10:02:00');
+        $this->travelTo('2026-07-22 10:02:00');
         (new ExpireReservations)->handle(app(\App\Modules\Reservations\Actions\ExpireReservationAction::class));
 
         $this->assertDatabaseHas('reservations', ['id' => $reservationId, 'status' => 'expired']);
