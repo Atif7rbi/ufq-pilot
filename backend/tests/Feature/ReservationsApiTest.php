@@ -118,7 +118,7 @@ final class ReservationsApiTest extends ApiTestCase
             ->assertUnprocessable()->assertJsonValidationErrors(['unit_id']);
 
         $soldUnit = $this->createAvailableUnit();
-        $this->putJson("/api/units/{$soldUnit}", ['status' => 'sold'])->assertOk();
+        $this->patchJson("/api/units/{$soldUnit}", ['status' => 'sold'])->assertOk();
         $this->postJson('/api/reservations', ['unit_id' => $soldUnit, 'customer_id' => $customerId])
             ->assertUnprocessable()->assertJsonValidationErrors(['unit_id']);
 
@@ -252,14 +252,14 @@ final class ReservationsApiTest extends ApiTestCase
         ])->assertCreated();
 
         $soldUnit = $this->createAvailableUnit();
-        $this->putJson("/api/units/{$soldUnit}", [
+        $this->patchJson("/api/units/{$soldUnit}", [
             'status' => 'sold',
         ])->assertOk();
 
         $this->createAvailableUnit(false);
 
         $archivedUnit = $this->createAvailableUnit();
-        $this->postJson("/api/units/{$archivedUnit}/archive")
+        $this->patchJson("/api/units/{$archivedUnit}/archive")
             ->assertOk();
 
         Sanctum::actingAs($tenantBUser);
