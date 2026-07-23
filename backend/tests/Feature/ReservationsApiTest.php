@@ -42,7 +42,7 @@ final class ReservationsApiTest extends ApiTestCase
         $this->postJson('/api/reservations', [])->assertUnauthorized();
         $this->getJson("/api/reservations/{$id}")->assertUnauthorized();
         $this->patchJson("/api/reservations/{$id}", [])->assertUnauthorized();
-        $this->postJson("/api/reservations/{$id}/cancel")->assertUnauthorized();
+        $this->patchJson("/api/reservations/{$id}/cancel")->assertUnauthorized();
     }
 
     public function test_active_project_available_unit_and_customer_can_be_reserved_with_default_expiry(): void
@@ -175,7 +175,7 @@ final class ReservationsApiTest extends ApiTestCase
         Sanctum::actingAs($user);
         $reservationId = $this->createReservation();
 
-        $this->postJson("/api/reservations/{$reservationId}/cancel", ['cancellation_reason' => 'تراجع العميل.'])
+        $this->patchJson("/api/reservations/{$reservationId}/cancel", ['cancellation_reason' => 'تراجع العميل.'])
             ->assertOk()
             ->assertJsonPath('data.reservation.status', 'cancelled')
             ->assertJsonPath('data.reservation.cancellation_reason', 'تراجع العميل.')
@@ -183,7 +183,7 @@ final class ReservationsApiTest extends ApiTestCase
 
         $this->patchJson("/api/reservations/{$reservationId}", ['notes' => 'لا ينبغي الحفظ'])
             ->assertUnprocessable()->assertJsonValidationErrors(['reservation']);
-        $this->postJson("/api/reservations/{$reservationId}/cancel")
+        $this->patchJson("/api/reservations/{$reservationId}/cancel")
             ->assertUnprocessable()->assertJsonValidationErrors(['reservation']);
     }
 
@@ -218,7 +218,7 @@ final class ReservationsApiTest extends ApiTestCase
         Sanctum::actingAs($tenantAUser);
         $reservationId = $this->createReservation();
 
-        $this->postJson("/api/reservations/{$reservationId}/cancel")->assertOk();
+        $this->patchJson("/api/reservations/{$reservationId}/cancel")->assertOk();
         $active = $this->createReservation();
 
         $this->getJson('/api/reservations?search=U-2&status=active&per_page=1')
@@ -232,7 +232,7 @@ final class ReservationsApiTest extends ApiTestCase
         Sanctum::actingAs($tenantBUser);
         $this->getJson("/api/reservations/{$active}")->assertNotFound();
         $this->patchJson("/api/reservations/{$active}", ['notes' => 'x'])->assertNotFound();
-        $this->postJson("/api/reservations/{$active}/cancel")->assertNotFound();
+        $this->patchJson("/api/reservations/{$active}/cancel")->assertNotFound();
     }
 
     public function test_available_units_returns_only_units_eligible_for_reservation(): void
