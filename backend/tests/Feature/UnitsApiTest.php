@@ -26,13 +26,13 @@ final class UnitsApiTest extends ApiTestCase
         $this->getJson("/api/units/{$unitId}")
             ->assertUnauthorized();
 
-        $this->putJson("/api/units/{$unitId}", [])
+        $this->patchJson("/api/units/{$unitId}", [])
             ->assertUnauthorized();
 
-        $this->postJson("/api/units/{$unitId}/archive")
+        $this->patchJson("/api/units/{$unitId}/archive")
             ->assertUnauthorized();
 
-        $this->postJson("/api/units/{$unitId}/restore")
+        $this->patchJson("/api/units/{$unitId}/restore")
             ->assertUnauthorized();
     }
 
@@ -163,7 +163,7 @@ final class UnitsApiTest extends ApiTestCase
             ->assertJsonPath('data.unit.id', $unitId)
             ->assertJsonPath('data.unit.unit_number', 'B-202');
 
-        $this->putJson("/api/units/{$unitId}", [
+        $this->patchJson("/api/units/{$unitId}", [
             'status' => 'sold',
             'selling_price' => 950000,
             'floor' => 4,
@@ -252,7 +252,7 @@ final class UnitsApiTest extends ApiTestCase
             ->assertCreated()
             ->json('data.unit.id');
 
-        $this->postJson("/api/units/{$unitId}/archive")
+        $this->patchJson("/api/units/{$unitId}/archive")
             ->assertOk()
             ->assertJsonPath('message', 'تمت أرشفة الوحدة بنجاح.')
             ->assertJsonPath('data.unit.status', 'sold')
@@ -273,7 +273,7 @@ final class UnitsApiTest extends ApiTestCase
             ->assertOk()
             ->assertJsonPath('data.units.total', 0);
 
-        $this->putJson("/api/units/{$unitId}", [
+        $this->patchJson("/api/units/{$unitId}", [
             'selling_price' => 850000,
         ])
             ->assertUnprocessable()
@@ -288,18 +288,18 @@ final class UnitsApiTest extends ApiTestCase
             ->assertUnprocessable()
             ->assertJsonValidationErrors(['unit_number']);
 
-        $this->postJson("/api/units/{$unitId}/archive")
+        $this->patchJson("/api/units/{$unitId}/archive")
             ->assertUnprocessable()
             ->assertJsonValidationErrors(['unit']);
 
-        $this->postJson("/api/units/{$unitId}/restore")
+        $this->patchJson("/api/units/{$unitId}/restore")
             ->assertOk()
             ->assertJsonPath('message', 'تمت استعادة الوحدة بنجاح.')
             ->assertJsonPath('data.unit.status', 'sold')
             ->assertJsonPath('data.unit.archived_at', null)
             ->assertJsonPath('data.unit.restored_by', $user->id);
 
-        $this->postJson("/api/units/{$unitId}/restore")
+        $this->patchJson("/api/units/{$unitId}/restore")
             ->assertUnprocessable()
             ->assertJsonValidationErrors(['unit']);
     }
@@ -325,7 +325,7 @@ final class UnitsApiTest extends ApiTestCase
         $this->getJson("/api/units/{$unitId}")
             ->assertNotFound();
 
-        $this->putJson("/api/units/{$unitId}", [
+        $this->patchJson("/api/units/{$unitId}", [
             'status' => 'sold',
         ])->assertNotFound();
 

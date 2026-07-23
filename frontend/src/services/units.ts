@@ -60,7 +60,7 @@ export async function updateUnit(
 ): Promise<Unit> {
   const result = await requestJson<UnitResponse>(`/units/${unitId}`, {
     token,
-    method: "PUT",
+    method: "PATCH",
     body: payload,
   });
 
@@ -76,7 +76,7 @@ async function changeArchiveState(
     `/units/${unitId}/${action}`,
     {
       token,
-      method: "POST",
+      method: "PATCH",
     }
   );
 

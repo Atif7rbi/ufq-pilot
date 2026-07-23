@@ -66,17 +66,17 @@ Route::middleware([
         [UnitController::class, 'show']
     )->name('units.show');
 
-    Route::put(
+    Route::patch(
         '/units/{unit}',
         [UnitController::class, 'update']
     )->name('units.update');
 
-    Route::post(
+    Route::patch(
         '/units/{unit}/archive',
         [UnitController::class, 'archive']
     )->name('units.archive');
 
-    Route::post(
+    Route::patch(
         '/units/{unit}/restore',
         [UnitController::class, 'restore']
     )->name('units.restore');
