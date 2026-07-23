@@ -97,7 +97,7 @@ export async function cancelReservation(
     `/reservations/${reservationId}/cancel`,
     {
       token,
-      method: "POST",
+      method: "PATCH",
       body: payload,
     }
   );
