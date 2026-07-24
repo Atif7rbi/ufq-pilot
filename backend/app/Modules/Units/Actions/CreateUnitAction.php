@@ -6,6 +6,7 @@ namespace App\Modules\Units\Actions;
 
 use App\Modules\Units\Enums\UnitStatus;
 use App\Modules\Units\Models\Unit;
+use App\Modules\Projects\Models\Project;
 use Illuminate\Support\Facades\DB;
 
 final class CreateUnitAction
@@ -20,6 +21,11 @@ final class CreateUnitAction
             $actorId,
             $data,
         ): Unit {
+            Project::query()
+                ->where('tenant_id', $tenantId)
+                ->whereKey($data['project_id'])
+                ->firstOrFail();
+
             unset(
                 $data['tenant_id'],
                 $data['created_by'],

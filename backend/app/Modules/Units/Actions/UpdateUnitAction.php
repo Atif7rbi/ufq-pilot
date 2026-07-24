@@ -6,6 +6,7 @@ namespace App\Modules\Units\Actions;
 
 use App\Modules\Units\Exceptions\ArchivedUnitCannotBeUpdatedException;
 use App\Modules\Units\Models\Unit;
+use App\Modules\Projects\Models\Project;
 use Illuminate\Support\Facades\DB;
 
 final class UpdateUnitAction
@@ -30,6 +31,13 @@ final class UpdateUnitAction
 
             if ($unit->isArchived()) {
                 throw new ArchivedUnitCannotBeUpdatedException();
+            }
+
+            if (isset($data['project_id'])) {
+                Project::query()
+                    ->where('tenant_id', $tenantId)
+                    ->whereKey($data['project_id'])
+                    ->firstOrFail();
             }
 
             unset(

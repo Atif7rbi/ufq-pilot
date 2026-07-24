@@ -8,15 +8,26 @@ use App\Modules\Projects\Actions\UpdateProjectAction;
 use App\Modules\Projects\Models\Project;
 use App\Modules\Projects\Requests\StoreProjectRequest;
 use App\Modules\Projects\Requests\UpdateProjectRequest;
+use App\Modules\Shared\Services\ResolveActiveMembership;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
-class ProjectController extends Controller
+final class ProjectController extends Controller
 {
+    public function __construct(
+        private readonly ResolveActiveMembership $resolveActiveMembership,
+    ) {
+    }
+
     public function index(Request $request): JsonResponse
     {
+        $membership = $this->resolveActiveMembership->handle(
+            $request->user(),
+        );
+
         $projects = Project::query()
             ->with('projectManager:id,name,email')
+            ->where('tenant_id', $membership->tenant_id)
             ->when(
                 $request->filled('search'),
                 function ($query) use ($request): void {
@@ -59,9 +70,14 @@ class ProjectController extends Controller
         StoreProjectRequest $request,
         CreateProjectAction $action,
     ): JsonResponse {
-        $project = $action->execute(
-            $request->validated(),
+        $membership = $this->resolveActiveMembership->handle(
             $request->user(),
+        );
+
+        $project = $action->execute(
+            tenantId: (string) $membership->tenant_id,
+            actorId: $request->user()->id,
+            data: $request->validated(),
         )->load('projectManager:id,name,email');
 
         return response()->json([
@@ -72,11 +88,20 @@ class ProjectController extends Controller
         ], 201);
     }
 
-    public function show(Project $project): JsonResponse
+    public function show(Request $request, string $project): JsonResponse
     {
+        $membership = $this->resolveActiveMembership->handle(
+            $request->user(),
+        );
+
+        $projectRecord = Project::query()
+            ->where('tenant_id', $membership->tenant_id)
+            ->whereKey($project)
+            ->firstOrFail();
+
         return response()->json([
             'data' => [
-                'project' => $project->load(
+                'project' => $projectRecord->load(
                     'projectManager:id,name,email'
                 ),
             ],
@@ -85,13 +110,18 @@ class ProjectController extends Controller
 
     public function update(
         UpdateProjectRequest $request,
-        Project $project,
+        string $project,
         UpdateProjectAction $action,
     ): JsonResponse {
-        $project = $action->execute(
-            $project,
-            $request->validated(),
+        $membership = $this->resolveActiveMembership->handle(
             $request->user(),
+        );
+
+        $project = $action->execute(
+            tenantId: (string) $membership->tenant_id,
+            projectId: $project,
+            actorId: $request->user()->id,
+            data: $request->validated(),
         )->load('projectManager:id,name,email');
 
         return response()->json([
@@ -104,11 +134,20 @@ class ProjectController extends Controller
 
     public function destroy(
         Request $request,
-        Project $project,
+        string $project,
     ): JsonResponse {
-        $project->updated_by = $request->user()->id;
-        $project->save();
-        $project->delete();
+        $membership = $this->resolveActiveMembership->handle(
+            $request->user(),
+        );
+
+        $projectRecord = Project::query()
+            ->where('tenant_id', $membership->tenant_id)
+            ->whereKey($project)
+            ->firstOrFail();
+
+        $projectRecord->updated_by = $request->user()->id;
+        $projectRecord->save();
+        $projectRecord->delete();
 
         return response()->json([
             'message' => 'تم حذف المشروع بنجاح.',

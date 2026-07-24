@@ -3,6 +3,8 @@
 namespace Tests\Feature;
 
 use App\Models\Tenant;
+use App\Models\TenantUser;
+use App\Models\User;
 use App\Modules\Projects\Models\Project;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Carbon;
@@ -36,6 +38,7 @@ class ProjectsApiTest extends ApiTestCase
     public function test_authenticated_user_can_create_project_with_generated_number(): void
     {
         $user = $this->createActiveUser();
+        $tenantId = $this->tenantIdFor($user);
 
         Sanctum::actingAs($user);
 
@@ -55,7 +58,8 @@ class ProjectsApiTest extends ApiTestCase
             ->assertJsonPath('data.project.project_number_year', 2026)
             ->assertJsonPath('data.project.project_sequence_number', 1)
             ->assertJsonPath('data.project.status', 'draft')
-            ->assertJsonPath('data.project.data_origin', 'user');
+            ->assertJsonPath('data.project.data_origin', 'user')
+            ->assertJsonPath('data.project.tenant_id', $tenantId);
 
         $this->assertDatabaseHas('projects', [
             'project_number' => 'PRJ-2026-001',
@@ -63,14 +67,16 @@ class ProjectsApiTest extends ApiTestCase
             'project_type' => 'residential',
             'status' => 'draft',
             'city' => 'الرياض',
+            'tenant_id' => $tenantId,
             'created_by' => $user->id,
             'updated_by' => $user->id,
         ]);
     }
 
-    public function test_legacy_project_creation_remains_compatible_during_schema_expansion(): void
+    public function test_project_creation_uses_the_active_membership_tenant(): void
     {
         $user = $this->createActiveUser();
+        $tenantId = $this->tenantIdFor($user);
 
         Sanctum::actingAs($user);
 
@@ -84,10 +90,46 @@ class ProjectsApiTest extends ApiTestCase
 
         $this->assertDatabaseHas('projects', [
             'id' => $projectId,
-            'tenant_id' => null,
+            'tenant_id' => $tenantId,
             'archived_at' => null,
             'archived_by' => null,
             'restored_by' => null,
+        ]);
+    }
+
+    public function test_projects_are_scoped_to_the_active_tenant(): void
+    {
+        $tenantAUser = $this->createActiveUser();
+        $tenantBUser = $this->createActiveUser();
+
+        Sanctum::actingAs($tenantAUser);
+
+        $projectId = $this->postJson('/api/projects', [
+            'name' => 'مشروع Tenant الأول',
+            'project_type' => 'residential',
+            'city' => 'الرياض',
+        ])->assertCreated()->json('data.project.id');
+
+        Sanctum::actingAs($tenantBUser);
+
+        $this->getJson('/api/projects')
+            ->assertOk()
+            ->assertJsonCount(0, 'data.data');
+
+        $this->getJson("/api/projects/{$projectId}")
+            ->assertNotFound();
+
+        $this->putJson("/api/projects/{$projectId}", [
+            'name' => 'محاولة تعديل من Tenant آخر',
+        ])->assertNotFound();
+
+        $this->deleteJson("/api/projects/{$projectId}")
+            ->assertNotFound();
+
+        $this->assertDatabaseHas('projects', [
+            'id' => $projectId,
+            'tenant_id' => $this->tenantIdFor($tenantAUser),
+            'name' => 'مشروع Tenant الأول',
         ]);
     }
 
@@ -213,6 +255,7 @@ class ProjectsApiTest extends ApiTestCase
 
             DB::table('projects')->where('id', $createdProjectId)->update([
                 'id' => $projectId,
+                'tenant_id' => null,
             ]);
         }
 
@@ -222,6 +265,10 @@ class ProjectsApiTest extends ApiTestCase
             'project_type' => 'commercial',
             'city' => 'جدة',
         ])->assertCreated()->json('data.project.id');
+
+        DB::table('projects')->where('id', $unassignedProjectId)->update([
+            'tenant_id' => null,
+        ]);
 
         $migration = require database_path(
             'migrations/2026_07_23_030000_assign_historical_projects_to_ufq_tenant.php'
@@ -478,5 +525,13 @@ class ProjectsApiTest extends ApiTestCase
         $this->assertNull(
             Project::query()->find($projectId)
         );
+    }
+
+    private function tenantIdFor(User $user): string
+    {
+        return (string) TenantUser::query()
+            ->where('user_id', $user->id)
+            ->where('status', TenantUser::STATUS_ACTIVE)
+            ->valueOrFail('tenant_id');
     }
 }

@@ -335,6 +335,30 @@ final class UnitsApiTest extends ApiTestCase
         );
     }
 
+    public function test_unit_cannot_reference_a_project_from_another_tenant(): void
+    {
+        $tenantAUser = $this->createActiveUser();
+        $tenantBUser = $this->createActiveUser();
+
+        Sanctum::actingAs($tenantAUser);
+
+        $tenantAProjectId = $this->createProject();
+
+        Sanctum::actingAs($tenantBUser);
+
+        $this->postJson('/api/units', [
+            'project_id' => $tenantAProjectId,
+            'unit_number' => 'X-101',
+            'unit_type' => 'apartment',
+            'selling_price' => 500000,
+        ])->assertNotFound();
+
+        $this->assertDatabaseMissing('units', [
+            'project_id' => $tenantAProjectId,
+            'unit_number' => 'X-101',
+        ]);
+    }
+
     private function tenantIdFor(User $user): string
     {
         return (string) TenantUser::query()

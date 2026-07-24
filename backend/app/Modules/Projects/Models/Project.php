@@ -2,6 +2,7 @@
 
 namespace App\Modules\Projects\Models;
 
+use App\Models\Tenant;
 use App\Models\User;
 use App\Modules\Projects\Enums\ProjectStatus;
 use App\Modules\Projects\Enums\ProjectType;
@@ -17,6 +18,7 @@ class Project extends Model
     use SoftDeletes;
 
     protected $fillable = [
+        'tenant_id',
         'project_number',
         'project_number_year',
         'project_sequence_number',
@@ -64,6 +66,11 @@ class Project extends Model
             User::class,
             'project_manager_id',
         );
+    }
+
+    public function tenant(): BelongsTo
+    {
+        return $this->belongsTo(Tenant::class);
     }
 
     public function creator(): BelongsTo
