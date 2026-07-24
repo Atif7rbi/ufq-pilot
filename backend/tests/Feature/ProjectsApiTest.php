@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Modules\Projects\Models\Project;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Carbon;
 use Laravel\Sanctum\Sanctum;
 
@@ -86,6 +87,56 @@ class ProjectsApiTest extends ApiTestCase
             'archived_at' => null,
             'archived_by' => null,
             'restored_by' => null,
+        ]);
+    }
+
+    public function test_phase_two_backfill_preserves_soft_deleted_project_lifecycle_and_existing_archive_metadata(): void
+    {
+        $user = $this->createActiveUser();
+
+        Sanctum::actingAs($user);
+
+        $backfillProjectId = $this->postJson('/api/projects', [
+            'name' => 'مشروع محذوف منطقيًا',
+            'project_type' => 'residential',
+            'city' => 'الرياض',
+            'status' => 'active',
+        ])->assertCreated()->json('data.project.id');
+
+        $existingArchiveProjectId = $this->postJson('/api/projects', [
+            'name' => 'مشروع بأرشفة موجودة',
+            'project_type' => 'commercial',
+            'city' => 'جدة',
+            'status' => 'planning',
+        ])->assertCreated()->json('data.project.id');
+
+        DB::table('projects')->where('id', $backfillProjectId)->update([
+            'deleted_at' => '2026-07-20 08:30:00+00',
+        ]);
+
+        DB::table('projects')->where('id', $existingArchiveProjectId)->update([
+            'deleted_at' => '2026-07-20 08:30:00+00',
+            'archived_at' => '2026-07-19 12:00:00+00',
+        ]);
+
+        $migration = require database_path(
+            'migrations/2026_07_23_010000_backfill_project_soft_deletes_to_archive_metadata.php'
+        );
+
+        $migration->up();
+
+        $this->assertDatabaseHas('projects', [
+            'id' => $backfillProjectId,
+            'status' => 'active',
+            'archived_at' => '2026-07-20 08:30:00+00',
+            'archived_by' => null,
+        ]);
+
+        $this->assertDatabaseHas('projects', [
+            'id' => $existingArchiveProjectId,
+            'status' => 'planning',
+            'archived_at' => '2026-07-19 12:00:00+00',
+            'archived_by' => null,
         ]);
     }
 
