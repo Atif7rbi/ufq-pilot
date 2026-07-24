@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Tenant;
 use App\Modules\Projects\Models\Project;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Carbon;
@@ -182,6 +183,63 @@ class ProjectsApiTest extends ApiTestCase
         $this->assertDatabaseHas('projects', [
             'id' => $unresolvedProjectId,
             'status' => 'planning',
+        ]);
+    }
+
+    public function test_phase_two_point_six_assigns_only_explicitly_approved_historical_projects(): void
+    {
+        $tenant = Tenant::factory()->create([
+            'id' => '01KXPBAATGZQBH4JRVETAH5SX1',
+        ]);
+        $user = $this->createActiveUser();
+
+        Sanctum::actingAs($user);
+
+        $projects = [
+            '01kxkhx6y03ge39wahs7cg32j8' => 'PRJ-2026-001',
+            '01kxkj755fk2a8ww6k23yk578j' => 'PRJ-2026-002',
+            '01kxkvpxwz0drmc3sy9e0a0wsv' => 'PRJ-2026-003',
+            '01kxkx9k9b6snmard931m307zm' => 'PRJ-2026-004',
+            '01ky1exp9w0m5hnmwsztpb7zsp' => 'PRJ-2026-005',
+        ];
+
+        foreach ($projects as $projectId => $projectNumber) {
+            $createdProjectId = $this->postJson('/api/projects', [
+                'sequence_number' => (int) str($projectNumber)->afterLast('-'),
+                'name' => "مشروع ترحيل {$projectNumber}",
+                'project_type' => 'residential',
+                'city' => 'الرياض',
+            ])->assertCreated()->json('data.project.id');
+
+            DB::table('projects')->where('id', $createdProjectId)->update([
+                'id' => $projectId,
+            ]);
+        }
+
+        $unassignedProjectId = $this->postJson('/api/projects', [
+            'sequence_number' => 6,
+            'name' => 'مشروع خارج قرار الترحيل',
+            'project_type' => 'commercial',
+            'city' => 'جدة',
+        ])->assertCreated()->json('data.project.id');
+
+        $migration = require database_path(
+            'migrations/2026_07_23_030000_assign_historical_projects_to_ufq_tenant.php'
+        );
+
+        $migration->up();
+
+        foreach ($projects as $projectId => $projectNumber) {
+            $this->assertDatabaseHas('projects', [
+                'id' => $projectId,
+                'project_number' => $projectNumber,
+                'tenant_id' => $tenant->id,
+            ]);
+        }
+
+        $this->assertDatabaseHas('projects', [
+            'id' => $unassignedProjectId,
+            'tenant_id' => null,
         ]);
     }
 
