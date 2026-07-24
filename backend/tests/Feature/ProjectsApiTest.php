@@ -140,6 +140,51 @@ class ProjectsApiTest extends ApiTestCase
         ]);
     }
 
+    public function test_phase_two_point_five_resolves_only_the_explicitly_approved_legacy_project(): void
+    {
+        $user = $this->createActiveUser();
+
+        Sanctum::actingAs($user);
+
+        $targetProjectId = $this->postJson('/api/projects', [
+            'name' => 'مشروع التسوية المعتمد',
+            'project_type' => 'residential',
+            'city' => 'الرياض',
+            'status' => 'planning',
+        ])->assertCreated()->json('data.project.id');
+
+        $unresolvedProjectId = $this->postJson('/api/projects', [
+            'name' => 'مشروع تخطيط غير محسوم',
+            'project_type' => 'commercial',
+            'city' => 'جدة',
+            'status' => 'planning',
+        ])->assertCreated()->json('data.project.id');
+
+        DB::table('projects')->where('id', $targetProjectId)->update([
+            'id' => '01kxkx9k9b6snmard931m307zm',
+            'project_number' => 'PRJ-2026-004',
+            'archived_at' => '2026-07-16 05:28:01+00',
+        ]);
+
+        $migration = require database_path(
+            'migrations/2026_07_23_020000_resolve_legacy_planning_project_to_draft.php'
+        );
+
+        $migration->up();
+
+        $this->assertDatabaseHas('projects', [
+            'id' => '01kxkx9k9b6snmard931m307zm',
+            'project_number' => 'PRJ-2026-004',
+            'status' => 'draft',
+            'archived_at' => '2026-07-16 05:28:01+00',
+        ]);
+
+        $this->assertDatabaseHas('projects', [
+            'id' => $unresolvedProjectId,
+            'status' => 'planning',
+        ]);
+    }
+
     public function test_project_numbers_increment_within_same_year(): void
     {
         $user = $this->createActiveUser();
