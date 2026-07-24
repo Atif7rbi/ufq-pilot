@@ -205,7 +205,7 @@ class ProjectsApiTest extends ApiTestCase
 
         foreach ($projects as $projectId => $projectNumber) {
             $createdProjectId = $this->postJson('/api/projects', [
-                'sequence_number' => (int) str($projectNumber)->afterLast('-'),
+                'sequence_number' => (int) substr($projectNumber, -3),
                 'name' => "مشروع ترحيل {$projectNumber}",
                 'project_type' => 'residential',
                 'city' => 'الرياض',
