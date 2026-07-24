@@ -2,6 +2,7 @@
 
 namespace App\Modules\Projects\Actions;
 
+use App\Modules\Projects\Exceptions\ArchivedProjectCannotBeUpdatedException;
 use App\Modules\Projects\Models\Project;
 use Illuminate\Support\Facades\DB;
 
@@ -20,10 +21,15 @@ class UpdateProjectAction
             $actorId,
         ): Project {
             $project = Project::query()
+                ->withTrashed()
                 ->where('tenant_id', $tenantId)
                 ->whereKey($projectId)
                 ->lockForUpdate()
                 ->firstOrFail();
+
+            if ($project->isArchived()) {
+                throw new ArchivedProjectCannotBeUpdatedException();
+            }
 
             unset(
                 $data['tenant_id'],
@@ -32,6 +38,7 @@ class UpdateProjectAction
                 $data['archived_at'],
                 $data['archived_by'],
                 $data['restored_by'],
+                $data['status'],
                 $data['country_code'],
                 $data['currency'],
             );

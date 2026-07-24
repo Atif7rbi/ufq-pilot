@@ -2,7 +2,6 @@
 
 namespace App\Modules\Projects\Requests;
 
-use App\Modules\Projects\Enums\ProjectStatus;
 use App\Modules\Projects\Enums\ProjectType;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -31,10 +30,7 @@ class UpdateProjectRequest extends FormRequest
                 'sometimes',
                 Rule::enum(ProjectType::class),
             ],
-            'status' => [
-                'sometimes',
-                Rule::enum(ProjectStatus::class),
-            ],
+            'status' => ['prohibited'],
             'city' => [
                 'sometimes',
                 'required',

@@ -39,10 +39,26 @@ Route::middleware([
         [SystemSettingController::class, 'update']
     );
 
-    Route::apiResource(
-        'projects',
-        ProjectController::class
-    );
+    Route::get('/projects', [ProjectController::class, 'index'])
+        ->name('projects.index');
+    Route::post('/projects', [ProjectController::class, 'store'])
+        ->name('projects.store');
+    Route::get('/projects/{project}', [ProjectController::class, 'show'])
+        ->name('projects.show');
+    Route::patch('/projects/{project}', [ProjectController::class, 'update'])
+        ->name('projects.update');
+    Route::patch('/projects/{project}/archive', [ProjectController::class, 'archive'])
+        ->name('projects.archive');
+    Route::patch('/projects/{project}/restore', [ProjectController::class, 'restore'])
+        ->name('projects.restore');
+    Route::patch('/projects/{project}/activate', [ProjectController::class, 'activate'])
+        ->name('projects.activate');
+    Route::patch('/projects/{project}/revert-to-draft', [ProjectController::class, 'revertToDraft'])
+        ->name('projects.revert-to-draft');
+    Route::patch('/projects/{project}/complete', [ProjectController::class, 'complete'])
+        ->name('projects.complete');
+    Route::patch('/projects/{project}/cancel', [ProjectController::class, 'cancel'])
+        ->name('projects.cancel');
 
     Route::get('/reservations', [ReservationController::class, 'index'])->name('reservations.index');
     Route::get('/reservations/available-units', [ReservationController::class, 'availableUnits'])->name('reservations.available-units');

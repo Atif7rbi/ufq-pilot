@@ -3,14 +3,30 @@
 namespace App\Modules\Projects\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Projects\Actions\ArchiveProjectAction;
+use App\Modules\Projects\Actions\ActivateProjectAction;
+use App\Modules\Projects\Actions\CancelProjectAction;
+use App\Modules\Projects\Actions\CompleteProjectAction;
 use App\Modules\Projects\Actions\CreateProjectAction;
+use App\Modules\Projects\Actions\RevertProjectToDraftAction;
+use App\Modules\Projects\Actions\RestoreProjectAction;
 use App\Modules\Projects\Actions\UpdateProjectAction;
+use App\Modules\Projects\Exceptions\ArchivedProjectCannotBeUpdatedException;
+use App\Modules\Projects\Exceptions\InvalidProjectStatusTransitionException;
+use App\Modules\Projects\Exceptions\ProjectAlreadyActiveException;
+use App\Modules\Projects\Exceptions\ProjectAlreadyArchivedException;
+use App\Modules\Projects\Exceptions\ProjectHasOperationalFootprintException;
+use App\Modules\Projects\Exceptions\ProjectHasOutstandingCommitmentsException;
+use App\Modules\Projects\Exceptions\ProjectNotArchivedException;
+use App\Modules\Projects\Exceptions\ProjectNotOperationallyCompleteException;
+use App\Modules\Projects\Exceptions\ProjectNotOperationallyReadyException;
 use App\Modules\Projects\Models\Project;
 use App\Modules\Projects\Requests\StoreProjectRequest;
 use App\Modules\Projects\Requests\UpdateProjectRequest;
 use App\Modules\Shared\Services\ResolveActiveMembership;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 final class ProjectController extends Controller
 {
@@ -26,6 +42,7 @@ final class ProjectController extends Controller
         );
 
         $projects = Project::query()
+            ->withTrashed()
             ->with('projectManager:id,name,email')
             ->where('tenant_id', $membership->tenant_id)
             ->when(
@@ -95,6 +112,7 @@ final class ProjectController extends Controller
         );
 
         $projectRecord = Project::query()
+            ->withTrashed()
             ->where('tenant_id', $membership->tenant_id)
             ->whereKey($project)
             ->firstOrFail();
@@ -117,12 +135,18 @@ final class ProjectController extends Controller
             $request->user(),
         );
 
-        $project = $action->execute(
-            tenantId: (string) $membership->tenant_id,
-            projectId: $project,
-            actorId: $request->user()->id,
-            data: $request->validated(),
-        )->load('projectManager:id,name,email');
+        try {
+            $project = $action->execute(
+                tenantId: (string) $membership->tenant_id,
+                projectId: $project,
+                actorId: $request->user()->id,
+                data: $request->validated(),
+            )->load('projectManager:id,name,email');
+        } catch (ArchivedProjectCannotBeUpdatedException $exception) {
+            $this->throwProjectValidationException(
+                $exception->getMessage()
+            );
+        }
 
         return response()->json([
             'message' => 'تم تحديث المشروع بنجاح.',
@@ -132,25 +156,205 @@ final class ProjectController extends Controller
         ]);
     }
 
-    public function destroy(
+    public function archive(
         Request $request,
         string $project,
+        ArchiveProjectAction $action,
     ): JsonResponse {
         $membership = $this->resolveActiveMembership->handle(
             $request->user(),
         );
 
-        $projectRecord = Project::query()
-            ->where('tenant_id', $membership->tenant_id)
-            ->whereKey($project)
-            ->firstOrFail();
-
-        $projectRecord->updated_by = $request->user()->id;
-        $projectRecord->save();
-        $projectRecord->delete();
+        try {
+            $projectRecord = $action->execute(
+                tenantId: (string) $membership->tenant_id,
+                projectId: $project,
+                actorId: $request->user()->id,
+            );
+        } catch (
+            ProjectAlreadyArchivedException
+            | InvalidProjectStatusTransitionException $exception
+        ) {
+            $this->throwProjectValidationException(
+                $exception->getMessage()
+            );
+        }
 
         return response()->json([
-            'message' => 'تم حذف المشروع بنجاح.',
+            'message' => 'تمت أرشفة المشروع بنجاح.',
+            'data' => [
+                'project' => $projectRecord,
+            ],
+        ]);
+    }
+
+    public function restore(
+        Request $request,
+        string $project,
+        RestoreProjectAction $action,
+    ): JsonResponse {
+        $membership = $this->resolveActiveMembership->handle(
+            $request->user(),
+        );
+
+        try {
+            $projectRecord = $action->execute(
+                tenantId: (string) $membership->tenant_id,
+                projectId: $project,
+                actorId: $request->user()->id,
+            );
+        } catch (ProjectNotArchivedException $exception) {
+            $this->throwProjectValidationException(
+                $exception->getMessage()
+            );
+        }
+
+        return response()->json([
+            'message' => 'تمت استعادة المشروع بنجاح.',
+            'data' => [
+                'project' => $projectRecord,
+            ],
+        ]);
+    }
+
+    public function activate(
+        Request $request,
+        string $project,
+        ActivateProjectAction $action,
+    ): JsonResponse {
+        $membership = $this->resolveActiveMembership->handle(
+            $request->user(),
+        );
+
+        try {
+            $projectRecord = $action->execute(
+                tenantId: (string) $membership->tenant_id,
+                projectId: $project,
+                actorId: $request->user()->id,
+            );
+        } catch (
+            ProjectAlreadyActiveException
+            | InvalidProjectStatusTransitionException
+            | ProjectNotOperationallyReadyException $exception
+        ) {
+            $this->throwProjectValidationException(
+                $exception->getMessage()
+            );
+        }
+
+        return $this->projectCommandResponse(
+            'تم تفعيل المشروع بنجاح.',
+            $projectRecord,
+        );
+    }
+
+    public function revertToDraft(
+        Request $request,
+        string $project,
+        RevertProjectToDraftAction $action,
+    ): JsonResponse {
+        $membership = $this->resolveActiveMembership->handle(
+            $request->user(),
+        );
+
+        try {
+            $projectRecord = $action->execute(
+                tenantId: (string) $membership->tenant_id,
+                projectId: $project,
+                actorId: $request->user()->id,
+            );
+        } catch (
+            InvalidProjectStatusTransitionException
+            | ProjectHasOperationalFootprintException $exception
+        ) {
+            $this->throwProjectValidationException(
+                $exception->getMessage()
+            );
+        }
+
+        return $this->projectCommandResponse(
+            'تمت إعادة المشروع إلى مسودة بنجاح.',
+            $projectRecord,
+        );
+    }
+
+    public function complete(
+        Request $request,
+        string $project,
+        CompleteProjectAction $action,
+    ): JsonResponse {
+        $membership = $this->resolveActiveMembership->handle(
+            $request->user(),
+        );
+
+        try {
+            $projectRecord = $action->execute(
+                tenantId: (string) $membership->tenant_id,
+                projectId: $project,
+                actorId: $request->user()->id,
+            );
+        } catch (ProjectNotOperationallyCompleteException $exception) {
+            $this->throwProjectValidationException(
+                $exception->getMessage()
+            );
+        }
+
+        return $this->projectCommandResponse(
+            'تم إكمال المشروع بنجاح.',
+            $projectRecord,
+        );
+    }
+
+    public function cancel(
+        Request $request,
+        string $project,
+        CancelProjectAction $action,
+    ): JsonResponse {
+        $membership = $this->resolveActiveMembership->handle(
+            $request->user(),
+        );
+
+        try {
+            $projectRecord = $action->execute(
+                tenantId: (string) $membership->tenant_id,
+                projectId: $project,
+                actorId: $request->user()->id,
+            );
+        } catch (
+            InvalidProjectStatusTransitionException
+            | ProjectHasOutstandingCommitmentsException $exception
+        ) {
+            $this->throwProjectValidationException(
+                $exception->getMessage()
+            );
+        }
+
+        return $this->projectCommandResponse(
+            'تم إلغاء المشروع بنجاح.',
+            $projectRecord,
+        );
+    }
+
+    /**
+     * @throws ValidationException
+     */
+    private function throwProjectValidationException(
+        string $message,
+    ): never {
+        throw ValidationException::withMessages([
+            'project' => [$message],
+        ]);
+    }
+
+    private function projectCommandResponse(
+        string $message,
+        Project $project,
+    ): JsonResponse {
+        return response()->json([
+            'message' => $message,
+            'data' => [
+                'project' => $project,
+            ],
         ]);
     }
 }

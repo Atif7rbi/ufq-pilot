@@ -5,7 +5,6 @@ namespace Tests\Feature;
 use App\Models\Tenant;
 use App\Models\TenantUser;
 use App\Models\User;
-use App\Modules\Projects\Models\Project;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Carbon;
 use Laravel\Sanctum\Sanctum;
@@ -73,6 +72,37 @@ class ProjectsApiTest extends ApiTestCase
         ]);
     }
 
+    public function test_project_status_can_only_change_through_lifecycle_commands(): void
+    {
+        $user = $this->createActiveUser();
+
+        Sanctum::actingAs($user);
+
+        $this->postJson('/api/projects', [
+            'name' => 'مشروع بحالة غير مسموحة',
+            'project_type' => 'residential',
+            'city' => 'الرياض',
+            'status' => 'active',
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors('status');
+
+        $projectId = $this->postJson('/api/projects', [
+            'name' => 'مشروع دورة الحياة',
+            'project_type' => 'residential',
+            'city' => 'الرياض',
+        ])->assertCreated()->json('data.project.id');
+
+        $this->patchJson("/api/projects/{$projectId}", [
+            'status' => 'active',
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors('status');
+
+        $this->assertDatabaseHas('projects', [
+            'id' => $projectId,
+            'status' => 'draft',
+        ]);
+    }
+
     public function test_project_creation_uses_the_active_membership_tenant(): void
     {
         $user = $this->createActiveUser();
@@ -132,11 +162,11 @@ class ProjectsApiTest extends ApiTestCase
         $this->getJson("/api/projects/{$projectId}")
             ->assertNotFound();
 
-        $this->putJson("/api/projects/{$projectId}", [
+        $this->patchJson("/api/projects/{$projectId}", [
             'name' => 'محاولة تعديل من Tenant آخر',
         ])->assertNotFound();
 
-        $this->deleteJson("/api/projects/{$projectId}")
+        $this->patchJson("/api/projects/{$projectId}/archive")
             ->assertNotFound();
 
         $this->assertDatabaseHas('projects', [
@@ -156,21 +186,21 @@ class ProjectsApiTest extends ApiTestCase
             'name' => 'مشروع محذوف منطقيًا',
             'project_type' => 'residential',
             'city' => 'الرياض',
-            'status' => 'active',
         ])->assertCreated()->json('data.project.id');
 
         $existingArchiveProjectId = $this->postJson('/api/projects', [
             'name' => 'مشروع بأرشفة موجودة',
             'project_type' => 'commercial',
             'city' => 'جدة',
-            'status' => 'planning',
         ])->assertCreated()->json('data.project.id');
 
         DB::table('projects')->where('id', $backfillProjectId)->update([
+            'status' => 'active',
             'deleted_at' => '2026-07-20 08:30:00+00',
         ]);
 
         DB::table('projects')->where('id', $existingArchiveProjectId)->update([
+            'status' => 'planning',
             'deleted_at' => '2026-07-20 08:30:00+00',
             'archived_at' => '2026-07-19 12:00:00+00',
         ]);
@@ -206,20 +236,23 @@ class ProjectsApiTest extends ApiTestCase
             'name' => 'مشروع التسوية المعتمد',
             'project_type' => 'residential',
             'city' => 'الرياض',
-            'status' => 'planning',
         ])->assertCreated()->json('data.project.id');
 
         $unresolvedProjectId = $this->postJson('/api/projects', [
             'name' => 'مشروع تخطيط غير محسوم',
             'project_type' => 'commercial',
             'city' => 'جدة',
-            'status' => 'planning',
         ])->assertCreated()->json('data.project.id');
 
         DB::table('projects')->where('id', $targetProjectId)->update([
             'id' => '01kxkx9k9b6snmard931m307zm',
             'project_number' => 'PRJ-2026-004',
             'archived_at' => '2026-07-16 05:28:01+00',
+            'status' => 'planning',
+        ]);
+
+        DB::table('projects')->where('id', $unresolvedProjectId)->update([
+            'status' => 'planning',
         ]);
 
         $migration = require database_path(
@@ -389,19 +422,15 @@ class ProjectsApiTest extends ApiTestCase
                 'data.project.name',
                 'مشروع قبل التعديل'
             );
-        $this->putJson("/api/projects/{$projectId}", [
+        $this->patchJson("/api/projects/{$projectId}", [
             'name' => 'مشروع بعد التعديل',
-            'status' => 'planning',
         ])
             ->assertOk()
             ->assertJsonPath(
                 'data.project.name',
                 'مشروع بعد التعديل'
             )
-            ->assertJsonPath(
-                'data.project.status',
-                'planning'
-            )
+            ->assertJsonPath('data.project.status', 'draft')
             ->assertJsonPath(
                 'data.project.country_code',
                 'SA'
@@ -414,7 +443,7 @@ class ProjectsApiTest extends ApiTestCase
         $this->assertDatabaseHas('projects', [
             'id' => $projectId,
             'name' => 'مشروع بعد التعديل',
-            'status' => 'planning',
+            'status' => 'draft',
             'updated_by' => $user->id,
         ]);
     }
@@ -430,11 +459,15 @@ class ProjectsApiTest extends ApiTestCase
             ['name' => 'مشروع النخيل الثاني', 'status' => 'active'],
             ['name' => 'مشروع الياسمين', 'status' => 'draft'],
         ] as $project) {
-            $this->postJson('/api/projects', [
-                ...$project,
+            $projectId = $this->postJson('/api/projects', [
+                'name' => $project['name'],
                 'project_type' => 'residential',
                 'city' => 'الرياض',
-            ])->assertCreated();
+            ])->assertCreated()->json('data.project.id');
+
+            DB::table('projects')->where('id', $projectId)->update([
+                'status' => $project['status'],
+            ]);
         }
 
         $this->getJson('/api/projects?search=النخيل&status=active&per_page=1&page=2')
@@ -474,7 +507,7 @@ class ProjectsApiTest extends ApiTestCase
             )
             ->json('data.project.id');
 
-        $this->putJson("/api/projects/{$projectId}", [
+        $this->patchJson("/api/projects/{$projectId}", [
             'project_manager_id' => null,
         ])
             ->assertOk()
@@ -514,7 +547,7 @@ class ProjectsApiTest extends ApiTestCase
             ]);
     }
 
-    public function test_authenticated_user_can_soft_delete_project(): void
+    public function test_project_can_be_archived_and_restored_without_changing_its_lifecycle_state(): void
     {
         $user = $this->createActiveUser();
 
@@ -528,21 +561,283 @@ class ProjectsApiTest extends ApiTestCase
             ->assertCreated()
             ->json('data.project.id');
 
-        $this->deleteJson("/api/projects/{$projectId}")
+        $this->patchJson("/api/projects/{$projectId}/archive")
             ->assertOk()
             ->assertJsonPath(
                 'message',
-                'تم حذف المشروع بنجاح.'
-            );
+                'تمت أرشفة المشروع بنجاح.'
+            )
+            ->assertJsonPath('data.project.status', 'draft')
+            ->assertJsonPath('data.project.archived_by', $user->id)
+            ->assertJsonPath('data.project.restored_by', null);
 
-        $this->assertSoftDeleted('projects', [
+        $this->assertDatabaseHas('projects', [
             'id' => $projectId,
             'updated_by' => $user->id,
+            'archived_by' => $user->id,
+            'status' => 'draft',
         ]);
 
-        $this->assertNull(
-            Project::query()->find($projectId)
+        $this->patchJson("/api/projects/{$projectId}", [
+            'name' => 'محاولة تعديل مشروع مؤرشف',
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors('project');
+
+        $this->patchJson("/api/projects/{$projectId}/archive")
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('project');
+
+        $this->patchJson("/api/projects/{$projectId}/restore")
+            ->assertOk()
+            ->assertJsonPath(
+                'message',
+                'تمت استعادة المشروع بنجاح.'
+            )
+            ->assertJsonPath('data.project.status', 'draft')
+            ->assertJsonPath('data.project.archived_at', null)
+            ->assertJsonPath('data.project.archived_by', null)
+            ->assertJsonPath('data.project.restored_by', $user->id);
+
+        $this->patchJson("/api/projects/{$projectId}/restore")
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('project');
+
+        DB::table('projects')->where('id', $projectId)->update([
+            'deleted_at' => '2026-07-15 12:00:00+00',
+        ]);
+
+        $this->getJson("/api/projects/{$projectId}")
+            ->assertOk();
+
+        $this->patchJson("/api/projects/{$projectId}", [
+            'notes' => 'لا يؤثر الحذف المنطقي الإرثي على السلوك.',
+        ])->assertOk();
+
+        $this->deleteJson("/api/projects/{$projectId}")
+            ->assertMethodNotAllowed();
+    }
+
+    public function test_project_lifecycle_commands_enforce_frozen_transitions_and_completion_policy(): void
+    {
+        $user = $this->createActiveUser();
+
+        Sanctum::actingAs($user);
+
+        $projectId = $this->createProjectForLifecycle('مشروع دورة التنفيذ');
+
+        $this->patchJson("/api/projects/{$projectId}/complete")
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('project');
+
+        $this->patchJson("/api/projects/{$projectId}/cancel")
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('project');
+
+        $this->patchJson("/api/projects/{$projectId}/revert-to-draft")
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('project');
+
+        $this->patchJson("/api/projects/{$projectId}/activate")
+            ->assertOk()
+            ->assertJsonPath('data.project.status', 'active')
+            ->assertJsonPath('data.project.archived_at', null);
+
+        $this->patchJson("/api/projects/{$projectId}/activate")
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('project');
+
+        $this->patchJson("/api/projects/{$projectId}", [
+            'actual_start_date' => '2026-07-01',
+            'actual_end_date' => '2026-07-15',
+        ])->assertOk();
+
+        $this->patchJson("/api/projects/{$projectId}/complete")
+            ->assertOk()
+            ->assertJsonPath('message', 'تم إكمال المشروع بنجاح.')
+            ->assertJsonPath('data.project.status', 'completed')
+            ->assertJsonPath('data.project.archived_at', null);
+
+        $this->patchJson("/api/projects/{$projectId}/activate")
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('project');
+
+        $this->patchJson("/api/projects/{$projectId}/revert-to-draft")
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('project');
+
+        $this->patchJson("/api/projects/{$projectId}/cancel")
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('project');
+
+        $notReadyProjectId = $this->createProjectForLifecycle(
+            'مشروع غير مكتمل البيانات',
         );
+        DB::table('projects')->where('id', $notReadyProjectId)->update([
+            'city' => null,
+        ]);
+
+        $this->patchJson("/api/projects/{$notReadyProjectId}/activate")
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('project');
+    }
+
+    public function test_active_project_can_revert_to_draft_only_without_an_active_reservation(): void
+    {
+        $user = $this->createActiveUser();
+
+        Sanctum::actingAs($user);
+
+        $revertibleProjectId = $this->createProjectForLifecycle(
+            'مشروع قابل للإرجاع',
+        );
+        $this->patchJson("/api/projects/{$revertibleProjectId}/activate")
+            ->assertOk();
+
+        $this->patchJson("/api/projects/{$revertibleProjectId}/revert-to-draft")
+            ->assertOk()
+            ->assertJsonPath('data.project.status', 'draft');
+
+        $projectId = $this->createProjectForLifecycle(
+            'مشروع له حجز نشط',
+        );
+        $this->patchJson("/api/projects/{$projectId}/activate")
+            ->assertOk();
+
+        $unitId = $this->createUnitForProject($projectId, 'A-401');
+        $customerId = $this->createCustomerForLifecycle('0500000401');
+
+        $this->postJson('/api/reservations', [
+            'unit_id' => $unitId,
+            'customer_id' => $customerId,
+        ])->assertCreated();
+
+        $this->patchJson("/api/projects/{$projectId}/revert-to-draft")
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('project');
+
+        $this->assertDatabaseHas('projects', [
+            'id' => $projectId,
+            'status' => 'active',
+        ]);
+
+    }
+
+    public function test_active_project_cannot_be_cancelled_with_outstanding_commitments(): void
+    {
+        $user = $this->createActiveUser();
+
+        Sanctum::actingAs($user);
+
+        $cancellableProjectId = $this->createProjectForLifecycle(
+            'مشروع قابل للإلغاء',
+        );
+        $this->patchJson("/api/projects/{$cancellableProjectId}/activate")
+            ->assertOk();
+
+        $this->patchJson("/api/projects/{$cancellableProjectId}/cancel")
+            ->assertOk()
+            ->assertJsonPath('data.project.status', 'cancelled');
+
+        $projectId = $this->createProjectForLifecycle(
+            'مشروع بوحدة مباعة',
+        );
+        $this->patchJson("/api/projects/{$projectId}/activate")
+            ->assertOk();
+
+        $unitId = $this->createUnitForProject($projectId, 'A-501');
+        $this->patchJson("/api/units/{$unitId}", [
+            'status' => 'sold',
+        ])->assertOk();
+
+        $this->patchJson("/api/projects/{$projectId}/cancel")
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('project');
+
+        $this->assertDatabaseHas('projects', [
+            'id' => $projectId,
+            'status' => 'active',
+        ]);
+
+        $reservedProjectId = $this->createProjectForLifecycle(
+            'مشروع بحجز قائم',
+        );
+        $this->patchJson("/api/projects/{$reservedProjectId}/activate")
+            ->assertOk();
+
+        $reservedUnitId = $this->createUnitForProject(
+            $reservedProjectId,
+            'A-502',
+        );
+        $reservedCustomerId = $this->createCustomerForLifecycle(
+            '0500000502',
+        );
+
+        $this->postJson('/api/reservations', [
+            'unit_id' => $reservedUnitId,
+            'customer_id' => $reservedCustomerId,
+        ])->assertCreated();
+
+        $this->patchJson("/api/projects/{$reservedProjectId}/cancel")
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('project');
+    }
+
+    public function test_archived_project_must_be_restored_before_any_lifecycle_command(): void
+    {
+        $user = $this->createActiveUser();
+
+        Sanctum::actingAs($user);
+
+        $projectId = $this->createProjectForLifecycle('مشروع مؤرشف');
+        $this->patchJson("/api/projects/{$projectId}/archive")
+            ->assertOk();
+
+        foreach ([
+            'activate',
+            'revert-to-draft',
+            'complete',
+            'cancel',
+        ] as $command) {
+            $this->patchJson("/api/projects/{$projectId}/{$command}")
+                ->assertUnprocessable()
+                ->assertJsonValidationErrors('project');
+        }
+
+        $this->assertDatabaseHas('projects', [
+            'id' => $projectId,
+            'status' => 'draft',
+        ]);
+    }
+
+    private function createProjectForLifecycle(string $name): string
+    {
+        return $this->postJson('/api/projects', [
+            'name' => $name,
+            'project_type' => 'residential',
+            'city' => 'الرياض',
+        ])->assertCreated()->json('data.project.id');
+    }
+
+    private function createUnitForProject(
+        string $projectId,
+        string $unitNumber,
+    ): string {
+        return $this->postJson('/api/units', [
+            'project_id' => $projectId,
+            'unit_number' => $unitNumber,
+            'unit_type' => 'apartment',
+            'selling_price' => 500000,
+        ])->assertCreated()->json('data.unit.id');
+    }
+
+    private function createCustomerForLifecycle(string $phone): string
+    {
+        return $this->postJson('/api/customers', [
+            'type' => 'individual',
+            'category' => 'buyer',
+            'name' => 'عميل اختبار',
+            'phone' => $phone,
+        ])->assertCreated()->json('data.customer.id');
     }
 
     private function tenantIdFor(User $user): string

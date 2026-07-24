@@ -1,0 +1,46 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Modules\Projects\Actions;
+
+use App\Modules\Projects\Enums\ProjectStatus;
+use App\Modules\Projects\Models\Project;
+use App\Modules\Projects\Policies\OperationalCompletionPolicy;
+use Illuminate\Support\Facades\DB;
+
+final class CompleteProjectAction
+{
+    public function __construct(
+        private readonly OperationalCompletionPolicy $completionPolicy,
+    ) {
+    }
+
+    public function execute(
+        string $tenantId,
+        string $projectId,
+        int|string $actorId,
+    ): Project {
+        return DB::transaction(function () use (
+            $tenantId,
+            $projectId,
+            $actorId,
+        ): Project {
+            $project = Project::query()
+                ->withTrashed()
+                ->where('tenant_id', $tenantId)
+                ->whereKey($projectId)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            $this->completionPolicy->assert($project);
+
+            $project->forceFill([
+                'status' => ProjectStatus::Completed,
+                'updated_by' => $actorId,
+            ])->save();
+
+            return $project;
+        });
+    }
+}

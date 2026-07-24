@@ -35,6 +35,7 @@ final class UpdateUnitAction
 
             if (isset($data['project_id'])) {
                 Project::query()
+                    ->withTrashed()
                     ->where('tenant_id', $tenantId)
                     ->whereKey($data['project_id'])
                     ->firstOrFail();

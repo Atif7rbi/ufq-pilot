@@ -54,7 +54,7 @@ class CreateProjectAction
             $data['project_number'] = $number['number'];
             $data['project_number_year'] = $number['year'];
             $data['project_sequence_number'] = $number['sequence'];
-            $data['status'] ??= ProjectStatus::Draft->value;
+            $data['status'] = ProjectStatus::Draft->value;
             $data['country_code'] = 'SA';
             $data['currency'] = 'SAR';
             $data['data_origin'] = DataOrigin::User->value;

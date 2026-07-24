@@ -55,6 +55,7 @@ class Project extends Model
             'planned_end_date' => 'date',
             'actual_start_date' => 'date',
             'actual_end_date' => 'date',
+            'archived_at' => 'datetime',
             'project_number_year' => 'integer',
             'project_sequence_number' => 'integer',
         ];
@@ -87,5 +88,20 @@ class Project extends Model
             User::class,
             'updated_by',
         );
+    }
+
+    public function archiver(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'archived_by');
+    }
+
+    public function restorer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'restored_by');
+    }
+
+    public function isArchived(): bool
+    {
+        return $this->archived_at !== null;
     }
 }
