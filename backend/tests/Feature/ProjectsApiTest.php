@@ -66,6 +66,29 @@ class ProjectsApiTest extends ApiTestCase
         ]);
     }
 
+    public function test_legacy_project_creation_remains_compatible_during_schema_expansion(): void
+    {
+        $user = $this->createActiveUser();
+
+        Sanctum::actingAs($user);
+
+        $projectId = $this->postJson('/api/projects', [
+            'name' => 'مشروع التوافق المرحلي',
+            'project_type' => 'residential',
+            'city' => 'الرياض',
+        ])
+            ->assertCreated()
+            ->json('data.project.id');
+
+        $this->assertDatabaseHas('projects', [
+            'id' => $projectId,
+            'tenant_id' => null,
+            'archived_at' => null,
+            'archived_by' => null,
+            'restored_by' => null,
+        ]);
+    }
+
     public function test_project_numbers_increment_within_same_year(): void
     {
         $user = $this->createActiveUser();
