@@ -2,14 +2,13 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
-use RuntimeException;
 
 return new class extends Migration
 {
     public function up(): void
     {
         if (DB::table('projects')->whereNull('tenant_id')->exists()) {
-            throw new RuntimeException(
+            throw new \RuntimeException(
                 'Cannot require projects.tenant_id while NULL values exist.'
             );
         }
