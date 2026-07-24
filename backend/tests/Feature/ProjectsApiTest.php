@@ -97,6 +97,19 @@ class ProjectsApiTest extends ApiTestCase
         ]);
     }
 
+    public function test_project_tenant_id_is_required_after_phase_three_compatibility(): void
+    {
+        $column = DB::selectOne("
+            SELECT is_nullable
+            FROM information_schema.columns
+            WHERE table_schema = current_schema()
+              AND table_name = 'projects'
+              AND column_name = 'tenant_id'
+        ");
+
+        $this->assertSame('NO', $column->is_nullable);
+    }
+
     public function test_projects_are_scoped_to_the_active_tenant(): void
     {
         $tenantAUser = $this->createActiveUser();
@@ -234,6 +247,13 @@ class ProjectsApiTest extends ApiTestCase
             'id' => '01KXPBAATGZQBH4JRVETAH5SX1',
         ]);
         $user = $this->createActiveUser();
+        $activeTenantId = $this->tenantIdFor($user);
+
+        $tenantRequirementMigration = require database_path(
+            'migrations/2026_07_24_000000_require_tenant_for_projects.php'
+        );
+
+        $tenantRequirementMigration->down();
 
         Sanctum::actingAs($user);
 
@@ -266,15 +286,13 @@ class ProjectsApiTest extends ApiTestCase
             'city' => 'جدة',
         ])->assertCreated()->json('data.project.id');
 
-        DB::table('projects')->where('id', $unassignedProjectId)->update([
-            'tenant_id' => null,
-        ]);
-
         $migration = require database_path(
             'migrations/2026_07_23_030000_assign_historical_projects_to_ufq_tenant.php'
         );
 
         $migration->up();
+
+        $tenantRequirementMigration->up();
 
         foreach ($projects as $projectId => $projectNumber) {
             $this->assertDatabaseHas('projects', [
@@ -286,7 +304,7 @@ class ProjectsApiTest extends ApiTestCase
 
         $this->assertDatabaseHas('projects', [
             'id' => $unassignedProjectId,
-            'tenant_id' => null,
+            'tenant_id' => $activeTenantId,
         ]);
     }
 
