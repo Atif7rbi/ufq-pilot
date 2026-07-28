@@ -1717,3 +1717,50 @@ Collection DDL Specification Amendment
 ```
 
 ويحتاج إلى قرار معماري صريح قبل التنفيذ.
+
+---
+
+# 37. Deferred Financial Invariants
+
+## 37.1 Collections v1 boundary
+
+The Payment Domain and Payment Allocation Domain are outside the scope of
+Collections v1.
+
+Accordingly, Collections v1 does not create a `payment_allocations` table
+and does not implement Allocation-based guards prematurely.
+
+## 37.2 No compatibility logic
+
+Collections v1 must not use:
+
+```php
+Schema::hasTable('payment_allocations')
+```
+
+It must not add:
+
+```text
+Compatibility Branch
+Temporary allocation guard
+Conditional payment-allocation query
+```
+
+No behaviour may depend on whether a future Payment table happens to exist.
+
+## 37.3 Deferred cancellation guard
+
+When the Payment Domain and Payment Allocation Domain are implemented, the
+following invariant must be added explicitly to `CancelContractAction`:
+
+```text
+Reject ordinary Contract cancellation when any Payment Allocation exists
+against any Collection belonging to that Contract.
+```
+
+The check applies to every Collection historically belonging to the Contract,
+including cancelled historical rows.
+
+Until `payment_allocations` exists, this guard remains deferred rather than
+simulated. This is a deliberate scope boundary, not a missing compatibility
+path.
