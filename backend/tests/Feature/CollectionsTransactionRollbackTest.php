@@ -102,11 +102,7 @@ final class CollectionsTransactionRollbackTest extends ApiTestCase
     {
         $context = $this->createCollectionContractContext();
         $this->saveAndFinalize($context);
-        $originalIds = Collection::query()
-            ->where('tenant_id', $context['tenant_id'])
-            ->where('contract_id', $context['contract_id'])
-            ->pluck('id')
-            ->all();
+        $originalIds = $this->activeCollectionIds($context);
 
         $this->expectException(ScheduleTotalMismatchException::class);
 
@@ -115,6 +111,7 @@ final class CollectionsTransactionRollbackTest extends ApiTestCase
                 $context['tenant_id'],
                 $context['contract_id'],
                 $context['user_id'],
+                $originalIds,
                 [
                     $this->collectionLine(null, 1, '200.00', '2026-08-01'),
                     $this->collectionLine(null, 2, '700.00', '2026-09-01'),
@@ -192,5 +189,20 @@ final class CollectionsTransactionRollbackTest extends ApiTestCase
             $context['contract_id'],
             $context['user_id'],
         );
+    }
+
+    /**
+     * @param array{tenant_id: string, contract_id: string, user_id: int} $context
+     * @return array<int, string>
+     */
+    private function activeCollectionIds(array $context): array
+    {
+        return Collection::query()
+            ->where('tenant_id', $context['tenant_id'])
+            ->where('contract_id', $context['contract_id'])
+            ->where('status', CollectionStatus::Scheduled->value)
+            ->orderBy('id')
+            ->pluck('id')
+            ->all();
     }
 }
