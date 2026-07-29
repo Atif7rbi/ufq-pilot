@@ -9,8 +9,11 @@ use App\Modules\Collections\Actions\FinalizeCollectionScheduleAction;
 use App\Modules\Collections\Actions\SaveDraftCollectionScheduleAction;
 use App\Modules\Collections\Enums\CollectionStatus;
 use App\Modules\Collections\Enums\DerivedScheduleState;
+use App\Modules\Collections\Exceptions\CollectionScheduleChangedSinceLoadedException;
+use App\Modules\Collections\Exceptions\InvalidExpectedActiveCollectionIdsException;
 use App\Modules\Collections\Models\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Tests\Support\CreatesCollectionScheduleFixtures;
 
 final class CollectionsActionsTest extends ApiTestCase
@@ -144,20 +147,22 @@ final class CollectionsActionsTest extends ApiTestCase
             ->all());
     }
 
-    public function test_amendment_cancels_history_and_creates_a_valid_replacement_schedule(): void
+    public function test_amendment_uses_the_expected_generation_and_normalizes_the_cancellation_reason(): void
     {
         $context = $this->createCollectionContractContext();
         $this->saveAndFinalize($context);
+        $expectedActiveIds = array_map('strtolower', $this->activeCollectionIds($context));
 
         $result = (new AmendCollectionScheduleAction())->execute(
             $context['tenant_id'],
             $context['contract_id'],
             $context['user_id'],
+            $expectedActiveIds,
             [
-                $this->collectionLine(null, 1, '250.00', '2026-08-01', 'الدفعة المعدلة الأولى'),
-                $this->collectionLine(null, 2, '750.00', '2026-09-01', 'الدفعة المعدلة الثانية'),
+                $this->collectionLine(null, 1, '250.00', '2026-08-01', 'بند التحصيل المعدل الأول'),
+                $this->collectionLine(null, 2, '750.00', '2026-09-01', 'بند التحصيل المعدل الثاني'),
             ],
-            'إعادة جدولة معتمدة',
+            '  إعادة جدولة معتمدة  ',
         );
 
         $this->assertSame(DerivedScheduleState::Scheduled, $result->derivedState);
@@ -167,6 +172,7 @@ final class CollectionsActionsTest extends ApiTestCase
             ->where('tenant_id', $context['tenant_id'])
             ->where('contract_id', $context['contract_id'])
             ->where('status', CollectionStatus::Cancelled->value)
+            ->where('cancellation_reason', 'إعادة جدولة معتمدة')
             ->count());
 
         $activeTotal = DB::table('collections')
@@ -176,6 +182,63 @@ final class CollectionsActionsTest extends ApiTestCase
             ->sum('amount');
 
         $this->assertSame('1000.00', number_format((float) $activeTotal, 2, '.', ''));
+    }
+
+    public function test_amendment_rejects_invalid_expected_active_collection_ids_before_writing(): void
+    {
+        $context = $this->createCollectionContractContext();
+        $this->saveAndFinalize($context);
+        $originalIds = $this->activeCollectionIds($context);
+
+        $this->expectException(InvalidExpectedActiveCollectionIdsException::class);
+
+        try {
+            (new AmendCollectionScheduleAction())->execute(
+                $context['tenant_id'],
+                $context['contract_id'],
+                $context['user_id'],
+                [],
+                [
+                    $this->collectionLine(null, 1, '500.00', '2026-08-01'),
+                    $this->collectionLine(null, 2, '500.00', '2026-09-01'),
+                ],
+                'سبب صالح',
+            );
+        } finally {
+            $this->assertSame($originalIds, $this->activeCollectionIds($context));
+            $this->assertDatabaseCount('collections', 2);
+        }
+    }
+
+    public function test_amendment_rejects_a_stale_generation_without_cancelling_or_creating_rows(): void
+    {
+        $context = $this->createCollectionContractContext();
+        $this->saveAndFinalize($context);
+        $originalIds = $this->activeCollectionIds($context);
+
+        $this->expectException(CollectionScheduleChangedSinceLoadedException::class);
+
+        try {
+            (new AmendCollectionScheduleAction())->execute(
+                $context['tenant_id'],
+                $context['contract_id'],
+                $context['user_id'],
+                [(string) Str::ulid()],
+                [
+                    $this->collectionLine(null, 1, '500.00', '2026-08-01'),
+                    $this->collectionLine(null, 2, '500.00', '2026-09-01'),
+                ],
+                'سبب صالح',
+            );
+        } finally {
+            $this->assertSame($originalIds, $this->activeCollectionIds($context));
+            $this->assertDatabaseCount('collections', 2);
+            $this->assertSame(0, Collection::query()
+                ->where('tenant_id', $context['tenant_id'])
+                ->where('contract_id', $context['contract_id'])
+                ->where('status', CollectionStatus::Cancelled->value)
+                ->count());
+        }
     }
 
     /**
@@ -198,5 +261,23 @@ final class CollectionsActionsTest extends ApiTestCase
             $context['contract_id'],
             $context['user_id'],
         );
+    }
+
+    /**
+     * @param array{tenant_id: string, contract_id: string, user_id: int} $context
+     * @return array<int, string>
+     */
+    private function activeCollectionIds(array $context): array
+    {
+        return Collection::query()
+            ->where('tenant_id', $context['tenant_id'])
+            ->where('contract_id', $context['contract_id'])
+            ->whereIn('status', [
+                CollectionStatus::Draft->value,
+                CollectionStatus::Scheduled->value,
+            ])
+            ->orderBy('id')
+            ->pluck('id')
+            ->all();
     }
 }
