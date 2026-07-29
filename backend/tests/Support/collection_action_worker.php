@@ -51,6 +51,7 @@ try {
             $payload['tenant_id'],
             $payload['contract_id'],
             $payload['actor_id'],
+            $payload['expected_active_collection_ids'],
             $lines,
             $payload['cancellation_reason'],
         ),
