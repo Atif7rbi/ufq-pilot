@@ -17,7 +17,7 @@ final class ExpectedActiveCollectionIdsValidator
      */
     public function validateAndCanonicalize(array $ids): array
     {
-        if ($ids === []) {
+        if ($ids === [] || ! array_is_list($ids)) {
             throw new InvalidExpectedActiveCollectionIdsException();
         }
 
