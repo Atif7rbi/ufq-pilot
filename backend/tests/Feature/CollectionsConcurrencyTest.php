@@ -7,6 +7,7 @@ namespace Tests\Feature;
 use App\Modules\Collections\Actions\FinalizeCollectionScheduleAction;
 use App\Modules\Collections\Actions\SaveDraftCollectionScheduleAction;
 use App\Modules\Collections\Enums\CollectionStatus;
+use App\Modules\Collections\Exceptions\CollectionScheduleChangedSinceLoadedException;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -21,9 +22,7 @@ final class CollectionsConcurrencyTest extends TestCase
 
     /** @var array<string, mixed> */
     private ?array $originalConnectionConfiguration = null;
-
     private ?string $connectionName = null;
-
     private ?string $schema = null;
 
     protected function setUp(): void
@@ -85,7 +84,7 @@ final class CollectionsConcurrencyTest extends TestCase
         $this->assertValidScheduledAggregate($context);
     }
 
-    public function test_two_amendment_attempts_serialize_and_leave_a_valid_schedule(): void
+    public function test_two_amendment_attempts_with_one_generation_token_allow_only_one_success(): void
     {
         $context = $this->createCollectionContractContext();
         $this->saveDraft($context);
@@ -94,13 +93,23 @@ final class CollectionsConcurrencyTest extends TestCase
             $context['contract_id'],
             $context['user_id'],
         );
+        $expectedIds = $this->activeCollectionIds($context);
 
         $results = $this->runWorkers([
-            $this->amendPayload($context, '400.00', '600.00', 'التعديل الأول'),
-            $this->amendPayload($context, '300.00', '700.00', 'التعديل الثاني'),
+            $this->amendPayload($context, $expectedIds, '400.00', '600.00', 'التعديل الأول'),
+            $this->amendPayload($context, $expectedIds, '300.00', '700.00', 'التعديل الثاني'),
         ]);
 
-        $this->assertSame(2, $this->successCount($results));
+        $this->assertSame(1, $this->successCount($results));
+        $failures = array_values(array_filter(
+            $results,
+            static fn (array $result): bool => $result['result']['ok'] === false,
+        ));
+        $this->assertCount(1, $failures);
+        $this->assertSame(
+            CollectionScheduleChangedSinceLoadedException::class,
+            $failures[0]['result']['class'],
+        );
         $this->assertValidScheduledAggregate($context);
     }
 
@@ -108,10 +117,11 @@ final class CollectionsConcurrencyTest extends TestCase
     {
         $context = $this->createCollectionContractContext();
         $this->saveDraft($context);
+        $expectedIds = $this->activeCollectionIds($context);
 
         $results = $this->runWorkers([
             $this->finalizePayload($context),
-            $this->amendPayload($context, '450.00', '550.00', 'تعديل متزامن'),
+            $this->amendPayload($context, $expectedIds, '450.00', '550.00', 'تعديل متزامن'),
         ]);
 
         $finalization = array_values(array_filter(
@@ -156,10 +166,12 @@ final class CollectionsConcurrencyTest extends TestCase
 
     /**
      * @param array{tenant_id: string, contract_id: string, user_id: int} $context
+     * @param array<int, string> $expectedIds
      * @return array<string, mixed>
      */
     private function amendPayload(
         array $context,
+        array $expectedIds,
         string $firstAmount,
         string $secondAmount,
         string $reason,
@@ -169,22 +181,41 @@ final class CollectionsConcurrencyTest extends TestCase
             'tenant_id' => $context['tenant_id'],
             'contract_id' => $context['contract_id'],
             'actor_id' => $context['user_id'],
+            'expected_active_collection_ids' => $expectedIds,
             'cancellation_reason' => $reason,
             'lines' => [
                 [
                     'sequence' => 1,
-                    'title' => 'قسط متزامن أول',
+                    'title' => 'بند تحصيل متزامن أول',
                     'amount' => $firstAmount,
                     'due_date' => '2026-08-01',
                 ],
                 [
                     'sequence' => 2,
-                    'title' => 'قسط متزامن ثان',
+                    'title' => 'بند تحصيل متزامن ثان',
                     'amount' => $secondAmount,
                     'due_date' => '2026-09-01',
                 ],
             ],
         ];
+    }
+
+    /**
+     * @param array{tenant_id: string, contract_id: string, user_id: int} $context
+     * @return array<int, string>
+     */
+    private function activeCollectionIds(array $context): array
+    {
+        return DB::table('collections')
+            ->where('tenant_id', $context['tenant_id'])
+            ->where('contract_id', $context['contract_id'])
+            ->whereIn('status', [
+                CollectionStatus::Draft->value,
+                CollectionStatus::Scheduled->value,
+            ])
+            ->orderBy('id')
+            ->pluck('id')
+            ->all();
     }
 
     /**
