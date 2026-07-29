@@ -14,6 +14,7 @@ use App\Modules\Collections\Support\DerivedScheduleStateResolver;
 use App\Modules\Collections\Support\LogCollectionAuditRecorder;
 use App\Modules\Collections\Validation\CollectionLineValidator;
 use App\Modules\Collections\Validation\CollectionScheduleValidator;
+use App\Modules\Collections\Validation\ExpectedActiveCollectionIdsValidator;
 use App\Modules\Contracts\Models\Contract;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -23,12 +24,13 @@ use Illuminate\Support\Str;
  *
  * Cancel-and-replace is the only mutation pattern for a Scheduled
  * Collection schedule (section 26, Financial Immutability). Order of
- * operations follows the specification exactly:
+ * operations follows the frozen amendment specification:
  *
- * Lock Contract -> Lock Collections -> Validate lifecycle -> Validate
- * amendment eligibility -> Cancel replaced rows -> Create replacements
- * directly as scheduled -> Validate sequence -> Validate due-date order ->
- * Validate final total -> Write audit -> Commit.
+ * Validate request structure -> Lock Contract -> Lock Collections ->
+ * compare the locked active Collection IDs with the expected generation ->
+ * validate lifecycle and amendment eligibility -> cancel replaced rows ->
+ * create replacements directly as scheduled -> validate sequence -> validate
+ * due-date order -> validate final total -> write audit -> commit.
  *
  * Because the cross-row validations run after the cancel-and-replace
  * writes (as specified), a validation failure rolls back the entire
@@ -41,21 +43,26 @@ final class AmendCollectionScheduleAction
         private readonly DerivedScheduleStateResolver $stateResolver = new DerivedScheduleStateResolver(),
         private readonly CollectionLineValidator $lineValidator = new CollectionLineValidator(),
         private readonly CollectionScheduleValidator $scheduleValidator = new CollectionScheduleValidator(),
+        private readonly ExpectedActiveCollectionIdsValidator $expectedActiveIdsValidator = new ExpectedActiveCollectionIdsValidator(),
         private readonly ?CollectionAuditRecorderInterface $auditRecorder = null,
     ) {
     }
 
     /**
+     * @param  array<int, mixed>  $expectedActiveCollectionIds
      * @param  array<int, \App\Modules\Collections\DTOs\CollectionLineData>  $replacementLines
      */
     public function execute(
         string $tenantId,
         string $contractId,
         int|string $actorId,
+        array $expectedActiveCollectionIds,
         array $replacementLines,
         string $cancellationReason,
     ): CollectionScheduleResult {
-        $this->assertCancellationReason($cancellationReason);
+        $expectedCanonicalIds = $this->expectedActiveIdsValidator
+            ->validateAndCanonicalize($expectedActiveCollectionIds);
+        $normalizedCancellationReason = $this->normalizeCancellationReason($cancellationReason);
 
         foreach ($replacementLines as $line) {
             $this->lineValidator->validate($line);
@@ -65,8 +72,9 @@ final class AmendCollectionScheduleAction
             $tenantId,
             $contractId,
             $actorId,
+            $expectedCanonicalIds,
             $replacementLines,
-            $cancellationReason,
+            $normalizedCancellationReason,
         ): CollectionScheduleResult {
             $contract = Contract::query()
                 ->where('tenant_id', $tenantId)
@@ -82,11 +90,17 @@ final class AmendCollectionScheduleAction
                 ->get()
                 ->all();
 
+            $replacedCollections = $this->stateResolver->activeOnly($allCollections);
+
+            $this->expectedActiveIdsValidator->assertMatchesActiveCollections(
+                $expectedCanonicalIds,
+                $replacedCollections,
+            );
+
             $currentState = $this->stateResolver->resolve($allCollections);
 
             $this->eligibilityPolicy->assert($contract, $currentState);
 
-            $replacedCollections = $this->stateResolver->activeOnly($allCollections);
             $cancelledAt = now();
 
             foreach ($replacedCollections as $collection) {
@@ -94,7 +108,7 @@ final class AmendCollectionScheduleAction
                     'status' => CollectionStatus::Cancelled,
                     'cancelled_at' => $cancelledAt,
                     'cancelled_by' => $actorId,
-                    'cancellation_reason' => $cancellationReason,
+                    'cancellation_reason' => $normalizedCancellationReason,
                     'updated_by' => $actorId,
                 ])->save();
             }
@@ -136,7 +150,7 @@ final class AmendCollectionScheduleAction
                 [
                     'cancelled_count' => count($replacedCollections),
                     'replacement_count' => count($replacements),
-                    'cancellation_reason' => $cancellationReason,
+                    'cancellation_reason' => $normalizedCancellationReason,
                 ],
             );
 
@@ -149,13 +163,15 @@ final class AmendCollectionScheduleAction
         });
     }
 
-    private function assertCancellationReason(string $reason): void
+    private function normalizeCancellationReason(string $reason): string
     {
         $trimmed = trim($reason);
 
-        if ($trimmed === '' || mb_strlen($reason) > 500) {
+        if ($trimmed === '' || mb_strlen($trimmed) > 500) {
             throw new InvalidCancellationReasonException();
         }
+
+        return $trimmed;
     }
 
     private function auditRecorder(): CollectionAuditRecorderInterface
