@@ -39,6 +39,15 @@ final class ExpectedActiveCollectionIdsValidatorTest extends TestCase
         $this->validator->validateAndCanonicalize([]);
     }
 
+    public function test_associative_array_is_rejected(): void
+    {
+        $this->expectException(InvalidExpectedActiveCollectionIdsException::class);
+
+        $this->validator->validateAndCanonicalize([
+            'first' => '01ARZ3NDEKTSV4RRFFQ69G5FAV',
+        ]);
+    }
+
     public function test_non_string_item_is_rejected(): void
     {
         $this->expectException(InvalidExpectedActiveCollectionIdsException::class);
