@@ -355,7 +355,6 @@ final class LeadsConversionApiTest extends ApiTestCase
         ['user' => $admin] = $this->createLeadUser($tenant, User::ROLE_ADMINISTRATOR);
         $lead = $this->createLead($tenant, $admin, [
             'archived_at'    => now(),
-            'archived_by'    => null,
             'archive_reason' => 'duplicate',
         ]);
 
