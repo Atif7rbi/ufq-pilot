@@ -6,11 +6,13 @@ import {
 } from "@/lib/http";
 import { ApiRequestError, parseApiError } from "@/lib/api-error";
 import type {
+  ConvertLeadPayload,
   CreateLeadPayload,
   Lead,
   LeadActivitiesResponse,
   LeadActivityResponse,
   LeadArchiveReason,
+  LeadConversionConflict,
   LeadDuplicateMatch,
   LeadLostReason,
   LeadResponse,
@@ -28,6 +30,44 @@ export class LeadDuplicateError extends ApiRequestError {
     super(message, {}, 409, "lead_phone_duplicate_detected");
     this.name = "LeadDuplicateError";
   }
+}
+
+export class LeadConversionConflictError extends ApiRequestError {
+  constructor(
+    message: string,
+    public readonly conflictingCustomer: LeadConversionConflict
+  ) {
+    super(message, {}, 409, "lead_conversion_new_customer_conflict");
+    this.name = "LeadConversionConflictError";
+  }
+}
+
+export async function convertLead(
+  token: string,
+  leadId: string,
+  payload: ConvertLeadPayload
+): Promise<Lead> {
+  const response = await fetch(
+    `${getApiBaseUrl()}/leads/${leadId}/convert`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify(payload),
+    }
+  );
+
+  if (!response.ok) {
+    const err = await parseApiError(response);
+    if (err.code === "lead_conversion_new_customer_conflict") {
+      const body = err.context as Record<string, unknown>;
+      const conflicting = body.conflicting_customer as LeadConversionConflict;
+      throw new LeadConversionConflictError(err.message, conflicting);
+    }
+    throw err;
+  }
+
+  const result = (await response.json()) as LeadResponse;
+  return result.data.lead;
 }
 
 export async function fetchLeads(
