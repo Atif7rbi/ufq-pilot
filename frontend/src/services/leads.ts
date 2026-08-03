@@ -57,13 +57,33 @@ export async function convertLead(
   );
 
   if (!response.ok) {
-    const err = await parseApiError(response);
-    if (err.code === "lead_conversion_new_customer_conflict") {
-      const body = err.context as Record<string, unknown>;
-      const conflicting = body.conflicting_customer as LeadConversionConflict;
-      throw new LeadConversionConflictError(err.message, conflicting);
+    // For the conflict case we need the full body, so we parse it ourselves
+    // before delegating to parseApiError for other errors.
+    if (response.status === 409) {
+      let body: Record<string, unknown>;
+      try {
+        body = (await response.json()) as Record<string, unknown>;
+      } catch {
+        throw await parseApiError(new Response(null, { status: 409 }));
+      }
+      const errorObj = body.error as Record<string, unknown> | undefined;
+      if (errorObj?.code === "lead_conversion_new_customer_conflict") {
+        const conflicting = errorObj.conflicting_customer as LeadConversionConflict;
+        throw new LeadConversionConflictError(
+          (errorObj.message as string) ?? "تعارض في التحويل",
+          conflicting
+        );
+      }
+      // For other 409s, re-construct a Response to feed parseApiError
+      const err = new ApiRequestError(
+        (errorObj?.message as string) ?? "تعذر إكمال العملية.",
+        {},
+        409,
+        (errorObj?.code as string) ?? null
+      );
+      throw err;
     }
-    throw err;
+    throw await parseApiError(response);
   }
 
   const result = (await response.json()) as LeadResponse;
