@@ -447,9 +447,13 @@ export function CrmLeadsPage() {
       }
       refresh();
     } catch (caughtError) {
-      setActionError(
-        caughtError instanceof Error ? caughtError.message : t("crm.genericError")
-      );
+      if (caughtError instanceof LeadConversionConflictError) {
+        setActionError(caughtError.message);
+      } else {
+        setActionError(
+          caughtError instanceof Error ? caughtError.message : t("crm.genericError")
+        );
+      }
     } finally {
       setActionProcessing(false);
     }
