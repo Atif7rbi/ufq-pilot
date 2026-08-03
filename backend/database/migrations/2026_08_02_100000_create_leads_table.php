@@ -252,7 +252,7 @@ return new class extends Migration
             ADD CONSTRAINT leads_conversion_mode_check
             CHECK (
                 conversion_mode IS NULL
-                OR conversion_mode IN ('created', 'linked', 'linked_and_promoted')
+                OR conversion_mode IN ('created', 'linked_existing', 'linked_and_promoted')
             )
         SQL);
 
