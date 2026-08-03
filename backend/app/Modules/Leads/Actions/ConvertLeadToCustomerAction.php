@@ -72,13 +72,6 @@ final class ConvertLeadToCustomerAction
         ?string $existingCustomerId,
         array $customerData = [],    // type + category for create_new
     ): Lead {
-        $normalizedPhone = $this->phoneNormalizer->normalizeRequired(
-            Lead::query()
-                ->where('tenant_id', $tenantId)
-                ->whereKey($leadId)
-                ->value('phone') ?? ''
-        );
-
         return DB::transaction(function () use (
             $tenantId,
             $leadId,
@@ -86,7 +79,6 @@ final class ConvertLeadToCustomerAction
             $conversionIntent,
             $existingCustomerId,
             $customerData,
-            $normalizedPhone,
         ): Lead {
             // Lock Lead first (fixed order: Lead before Customer)
             $lead = Lead::query()
@@ -107,6 +99,9 @@ final class ConvertLeadToCustomerAction
             if ($lead->isArchived()) {
                 throw new LeadIsArchivedException;
             }
+
+            // Normalize phone now that we have the Lead row
+            $normalizedPhone = $this->phoneNormalizer->normalizeRequired($lead->phone);
 
             if ($conversionIntent === 'create_new') {
                 return $this->handleCreateNew(
