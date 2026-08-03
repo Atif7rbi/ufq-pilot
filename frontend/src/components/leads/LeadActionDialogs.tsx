@@ -22,6 +22,7 @@ import type {
   LeadLostReason,
   OpenLeadStage,
 } from "@/types/lead";
+import type { TranslationKey } from "@/i18n/types";
 import type { TenantUser } from "@/types/tenant-user";
 
 export type LeadDialogAction =
@@ -333,7 +334,7 @@ function ConvertLeadDialog({
   lead: Lead;
   base: Record<string, unknown>;
   onConfirm: (payload: LeadDialogPayload) => void;
-  t: (key: string) => string;
+  t: (key: TranslationKey) => string;
 }) {
   const [type, setType] = useState<"individual" | "company">("individual");
   const [category, setCategory] = useState<
